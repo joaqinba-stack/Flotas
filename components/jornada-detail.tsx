@@ -204,6 +204,25 @@ export function JornadaDetail({
       </div>
 
       <div className="card">
+        <h2 style={{ marginTop: 0 }}>Incidencias de la jornada</h2>
+        <table className="data">
+          <thead><tr><th>#</th><th>Título</th><th>Ocurrió</th><th>Urgencia</th><th>Estado</th></tr></thead>
+          <tbody>
+            {j.incidents.map((i) => (
+              <tr key={i.id}>
+                <td className="mono">{linkEntities ? <Link href={`/incidentes/${i.id}`}>#{i.code}</Link> : `#${i.code}`}</td>
+                <td>{i.title}</td>
+                <td>{fmtDateTime(i.occurredAt)}</td>
+                <td><StatusBadge value={i.urgency} /></td>
+                <td><StatusBadge value={i.status} /></td>
+              </tr>
+            ))}
+            {j.incidents.length === 0 && <tr><td colSpan={5} className="muted">Sin incidencias.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card">
         <h2 style={{ marginTop: 0 }}>Novedades</h2>
         <ul className="timeline">
           {j.novedades.map((n) => (

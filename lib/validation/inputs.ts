@@ -7,6 +7,9 @@ import {
   TireMovementType,
   AuxAssetMovementType,
   PerformanceKind,
+  IncidentUrgency,
+  IncidentStatus,
+  ServiceOrderStatus,
 } from "@/lib/data/types";
 
 const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
@@ -136,6 +139,56 @@ export const novedadInputSchema = z.object({
   category: z.string().trim().min(2),
   description: z.string().trim().min(2),
   occurredAt: z.coerce.date(),
+});
+
+export const supplierInputSchema = z.object({
+  name: z.string().trim().min(2),
+  taxId: z.string().trim().min(5),
+  serviceTypes: z.string().trim().min(2),
+  contactName: optionalString,
+  contactEmail: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().email().nullable()),
+  contactPhone: optionalString,
+  active: z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
+});
+
+export const supplierLoginSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(8),
+});
+
+export const incidentInputSchema = z.object({
+  vehicleId: z.string().min(1),
+  jornadaId: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().nullable()),
+  title: z.string().trim().min(3),
+  description: z.string().trim().min(3),
+  category: z.string().trim().min(2),
+  urgency: z.nativeEnum(IncidentUrgency),
+  occurredAt: z.coerce.date(),
+});
+
+export const incidentClassifySchema = z.object({
+  urgency: z.nativeEnum(IncidentUrgency).optional(),
+  category: z.string().trim().min(2).optional(),
+  status: z.nativeEnum(IncidentStatus).optional(),
+});
+
+export const noteSchema = z.object({
+  body: z.string().trim().min(1),
+});
+
+export const serviceOrderInputSchema = z.object({
+  supplierId: z.string().min(1),
+  vehicleId: z.string().min(1),
+  incidentId: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().nullable()),
+  title: z.string().trim().min(3),
+  description: z.string().trim().min(3),
+  costEstimate: optionalNumber.pipe(z.number().positive().nullable()),
+  scheduledFor: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.coerce.date().nullable()),
+});
+
+export const serviceOrderStatusSchema = z.object({
+  toStatus: z.nativeEnum(ServiceOrderStatus),
+  costFinal: optionalNumber.pipe(z.number().min(0).nullable()),
 });
 
 export const performanceRecordSchema = z.object({

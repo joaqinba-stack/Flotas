@@ -16,6 +16,9 @@ export {
   ViaticoStatus,
   PermitStatus,
   PerformanceKind,
+  IncidentUrgency,
+  IncidentStatus,
+  ServiceOrderStatus,
 } from "@prisma/client";
 export type {
   OrgUnit,
@@ -36,4 +39,9 @@ export type {
   Permit,
   Novedad,
   DriverPerformanceRecord,
+  Incident,
+  IncidentNote,
+  IncidentAttachment,
+  SupplierServiceOrder,
+  SupplierServiceOrderNote,
 } from "@prisma/client";

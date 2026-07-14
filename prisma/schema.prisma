@@ -67,6 +67,11 @@ model User {
   permitsRequested     Permit[]                 @relation("PermitRequestedBy")
   novedadesReported    Novedad[]
   performanceRecorded  DriverPerformanceRecord[]
+  incidentsReported    Incident[]               @relation("IncidentReportedBy")
+  incidentNotes        IncidentNote[]
+  incidentAttachments  IncidentAttachment[]
+  serviceOrdersCreated SupplierServiceOrder[]
+  serviceOrderNotes    SupplierServiceOrderNote[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -96,6 +101,7 @@ model Driver {
   viaticos        Viatico[]
   permits         Permit[]
   performanceRecords DriverPerformanceRecord[]
+  incidents       Incident[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -139,6 +145,8 @@ model Vehicle {
   tireMovements      TireMovement[]
   auxiliaryAssets    AuxiliaryAsset[]
   auxAssetMovements  AuxiliaryAssetMovement[]
+  incidents          Incident[]
+  serviceOrders      SupplierServiceOrder[]
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
@@ -212,6 +220,7 @@ model JornadaOperativa {
   permits         Permit[]
   novedades       Novedad[]
   performanceRecords DriverPerformanceRecord[]
+  incidents       Incident[]
   createdById     String
   createdBy       User          @relation("JornadaCreatedBy", fields: [createdById], references: [id])
   createdAt       DateTime      @default(now())
@@ -442,6 +451,124 @@ model AuxiliaryAssetMovement {
   @@index([assetId, createdAt])
 }
 
+enum IncidentUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_SUPPLIER
+  RESOLVED
+  CLOSED
+}
+
+model Incident {
+  id            String                 @id @default(cuid())
+  code          Int                    @unique @default(autoincrement())
+  vehicleId     String
+  vehicle       Vehicle                @relation(fields: [vehicleId], references: [id])
+  jornadaId     String?
+  jornada       JornadaOperativa?      @relation(fields: [jornadaId], references: [id])
+  driverId      String?
+  driver        Driver?                @relation(fields: [driverId], references: [id])
+  title         String
+  description   String
+  category      String
+  urgency       IncidentUrgency        @default(MEDIUM)
+  status        IncidentStatus         @default(OPEN)
+  occurredAt    DateTime
+  resolvedAt    DateTime?
+  reportedById  String
+  reportedBy    User                   @relation("IncidentReportedBy", fields: [reportedById], references: [id])
+  notes         IncidentNote[]
+  attachments   IncidentAttachment[]
+  serviceOrders SupplierServiceOrder[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([vehicleId, occurredAt])
+  @@index([status])
+  @@index([driverId])
+}
+
+model IncidentNote {
+  id         String   @id @default(cuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([incidentId, createdAt])
+}
+
+model IncidentAttachment {
+  id           String   @id @default(cuid())
+  incidentId   String
+  incident     Incident @relation(fields: [incidentId], references: [id])
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+enum ServiceOrderStatus {
+  SENT
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model SupplierServiceOrder {
+  id           String                     @id @default(cuid())
+  orderNumber  Int                        @unique @default(autoincrement())
+  supplierId   String
+  supplier     Supplier                   @relation(fields: [supplierId], references: [id])
+  incidentId   String?
+  incident     Incident?                  @relation(fields: [incidentId], references: [id])
+  vehicleId    String
+  vehicle      Vehicle                    @relation(fields: [vehicleId], references: [id])
+  title        String
+  description  String
+  status       ServiceOrderStatus         @default(SENT)
+  costEstimate Decimal?                   @db.Decimal(12, 2)
+  costFinal    Decimal?                   @db.Decimal(12, 2)
+  scheduledFor DateTime?
+  completedAt  DateTime?
+  createdById  String
+  createdBy    User                       @relation(fields: [createdById], references: [id])
+  notes        SupplierServiceOrderNote[]
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+
+  @@index([supplierId, status])
+  @@index([vehicleId])
+  @@index([incidentId])
+}
+
+model SupplierServiceOrderNote {
+  id        String               @id @default(cuid())
+  orderId   String
+  order     SupplierServiceOrder @relation(fields: [orderId], references: [id])
+  authorId  String
+  author    User                 @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime             @default(now())
+
+  @@index([orderId, createdAt])
+}
+
 model PositionSnapshot {
   id                String   @id @default(cuid())
   vehicleId         String
@@ -474,6 +601,7 @@ model Supplier {
   contactPhone  String?
   active        Boolean @default(true)
   users         User[]
+  serviceOrders SupplierServiceOrder[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
