@@ -7,6 +7,12 @@ export {
   VehicleStatus,
   FuelType,
   DeviceConnectionStatus,
+  JornadaStatus,
+  FuelValidationStatus,
+  TireStatus,
+  TireMovementType,
+  AuxAssetStatus,
+  AuxAssetMovementType,
 } from "@prisma/client";
 export type {
   OrgUnit,
@@ -17,4 +23,10 @@ export type {
   VehicleStatusHistory,
   TraccarDevice,
   PositionSnapshot,
+  JornadaOperativa,
+  FuelLoad,
+  Tire,
+  TireMovement,
+  AuxiliaryAsset,
+  AuxiliaryAssetMovement,
 } from "@prisma/client";

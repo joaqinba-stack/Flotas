@@ -28,6 +28,7 @@ model OrgUnit {
   users     User[]
   drivers   Driver[]
   vehicles  Vehicle[]
+  jornadas  JornadaOperativa[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -55,6 +56,11 @@ model User {
   supplierId   String?
   supplier     Supplier? @relation(fields: [supplierId], references: [id])
   vehicleStatusChanges VehicleStatusHistory[]
+  jornadasCreated      JornadaOperativa[]       @relation("JornadaCreatedBy")
+  fuelLoadsCreated     FuelLoad[]               @relation("FuelCreatedBy")
+  fuelLoadsReviewed    FuelLoad[]               @relation("FuelReviewedBy")
+  tireMovements        TireMovement[]
+  auxAssetMovements    AuxiliaryAssetMovement[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -79,6 +85,8 @@ model Driver {
   orgUnit         OrgUnit      @relation(fields: [orgUnitId], references: [id])
   user            User?
   assignedVehicles Vehicle[]   @relation("VehicleCurrentDriver")
+  jornadas        JornadaOperativa[]
+  fuelLoads       FuelLoad[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -116,6 +124,12 @@ model Vehicle {
   traccarDevice      TraccarDevice?
   statusHistory      VehicleStatusHistory[]
   positions          PositionSnapshot[]
+  jornadas           JornadaOperativa[]
+  fuelLoads          FuelLoad[]
+  tires              Tire[]
+  tireMovements      TireMovement[]
+  auxiliaryAssets    AuxiliaryAsset[]
+  auxAssetMovements  AuxiliaryAssetMovement[]
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
@@ -156,6 +170,174 @@ model TraccarDevice {
   lastSeenAt                DateTime?
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
+}
+
+enum JornadaStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// Columna vertebral de trazabilidad: FuelLoad, Incident, Viatico, Permit y
+// Novedad enlazan acá para reconstruir el ciclo completo de cada operación.
+model JornadaOperativa {
+  id              String        @id @default(cuid())
+  vehicleId       String
+  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id])
+  driverId        String
+  driver          Driver        @relation(fields: [driverId], references: [id])
+  orgUnitId       String
+  orgUnit         OrgUnit       @relation(fields: [orgUnitId], references: [id])
+  purpose         String
+  plannedStart    DateTime
+  plannedEnd      DateTime
+  actualStart     DateTime?
+  actualEnd       DateTime?
+  startOdometerKm Int?
+  endOdometerKm   Int?
+  status          JornadaStatus @default(PLANNED)
+  notes           String?
+  fuelLoads       FuelLoad[]
+  createdById     String
+  createdBy       User          @relation("JornadaCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([vehicleId, plannedStart])
+  @@index([driverId, plannedStart])
+  @@index([orgUnitId])
+  @@index([status])
+}
+
+enum FuelValidationStatus {
+  PENDING
+  VALID
+  FLAGGED
+  REJECTED
+}
+
+model FuelLoad {
+  id               String               @id @default(cuid())
+  vehicleId        String
+  vehicle          Vehicle              @relation(fields: [vehicleId], references: [id])
+  driverId         String?
+  driver           Driver?              @relation(fields: [driverId], references: [id])
+  jornadaId        String?
+  jornada          JornadaOperativa?    @relation(fields: [jornadaId], references: [id])
+  loadedAt         DateTime
+  liters           Decimal              @db.Decimal(7, 2)
+  pricePerLiter    Decimal?             @db.Decimal(10, 2)
+  totalCost        Decimal?             @db.Decimal(12, 2)
+  odometerKm       Int
+  station          String?
+  fuelType         FuelType
+  validationStatus FuelValidationStatus @default(PENDING)
+  validationFlags  String[]
+  reviewedById     String?
+  reviewedBy       User?                @relation("FuelReviewedBy", fields: [reviewedById], references: [id])
+  reviewNote       String?
+  createdById      String
+  createdBy        User                 @relation("FuelCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime             @default(now())
+
+  @@index([vehicleId, loadedAt])
+  @@index([validationStatus])
+}
+
+enum TireStatus {
+  IN_STOCK
+  MOUNTED
+  IN_REPAIR
+  DISCARDED
+}
+
+enum TireMovementType {
+  MOUNT
+  ROTATE
+  DISMOUNT
+  REPAIR
+  DISCARD
+}
+
+model Tire {
+  id               String         @id @default(cuid())
+  serialNumber     String         @unique
+  brand            String
+  model            String
+  size             String
+  status           TireStatus     @default(IN_STOCK)
+  currentVehicleId String?
+  currentVehicle   Vehicle?       @relation(fields: [currentVehicleId], references: [id])
+  currentPosition  String?
+  treadDepthMm     Decimal?       @db.Decimal(4, 1)
+  movements        TireMovement[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([currentVehicleId])
+}
+
+model TireMovement {
+  id            String           @id @default(cuid())
+  tireId        String
+  tire          Tire             @relation(fields: [tireId], references: [id])
+  type          TireMovementType
+  vehicleId     String?
+  vehicle       Vehicle?         @relation(fields: [vehicleId], references: [id])
+  fromPosition  String?
+  toPosition    String?
+  odometerKm    Int?
+  notes         String?
+  performedById String
+  performedBy   User             @relation(fields: [performedById], references: [id])
+  createdAt     DateTime         @default(now())
+
+  @@index([tireId, createdAt])
+}
+
+enum AuxAssetStatus {
+  IN_STOCK
+  ASSIGNED
+  IN_REPAIR
+  RETIRED
+}
+
+enum AuxAssetMovementType {
+  ASSIGN
+  RETURN
+  REPAIR
+  RETIRE
+}
+
+model AuxiliaryAsset {
+  id               String                   @id @default(cuid())
+  code             String                   @unique
+  name             String
+  category         String
+  status           AuxAssetStatus           @default(IN_STOCK)
+  currentVehicleId String?
+  currentVehicle   Vehicle?                 @relation(fields: [currentVehicleId], references: [id])
+  movements        AuxiliaryAssetMovement[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@index([currentVehicleId])
+}
+
+model AuxiliaryAssetMovement {
+  id            String               @id @default(cuid())
+  assetId       String
+  asset         AuxiliaryAsset       @relation(fields: [assetId], references: [id])
+  type          AuxAssetMovementType
+  vehicleId     String?
+  vehicle       Vehicle?             @relation(fields: [vehicleId], references: [id])
+  notes         String?
+  performedById String
+  performedBy   User                 @relation(fields: [performedById], references: [id])
+  createdAt     DateTime             @default(now())
+
+  @@index([assetId, createdAt])
 }
 
 model PositionSnapshot {
