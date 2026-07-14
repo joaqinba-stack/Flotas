@@ -91,6 +91,45 @@ async function main() {
     });
   }
 
+  const driver2 = await prisma.driver.upsert({
+    where: { documentId: "30222333" },
+    update: {},
+    create: {
+      firstName: "María",
+      lastName: "López",
+      documentId: "30222333",
+      licenseNumber: "B-30222333",
+      licenseCategory: "C1",
+      licenseExpiry: new Date("2026-11-15"),
+      phone: "+54 11 5555-2222",
+      orgUnitId: baseSur.id,
+    },
+  });
+
+  const vehicles = [
+    { plate: "AB123CD", brand: "Toyota", model: "Hilux", year: 2022, type: "Camioneta", fuelType: "DIESEL" as const, tankCapacityLiters: 80, odometerKm: 45210, orgUnitId: baseNorte.id, currentDriverId: driver.id },
+    { plate: "AC456EF", brand: "Ford", model: "Transit", year: 2021, type: "Utilitario", fuelType: "DIESEL" as const, tankCapacityLiters: 95, odometerKm: 88700, orgUnitId: baseSur.id, currentDriverId: driver2.id },
+    { plate: "AD789GH", brand: "Volkswagen", model: "Amarok", year: 2023, type: "Camioneta", fuelType: "DIESEL" as const, tankCapacityLiters: 80, odometerKm: 12030, orgUnitId: baseSur.id, currentDriverId: null },
+    { plate: "AE012IJ", brand: "Fiat", model: "Cronos", year: 2020, type: "Sedán", fuelType: "NAFTA" as const, tankCapacityLiters: 48, odometerKm: 102500, orgUnitId: mantenimiento.id, currentDriverId: null },
+  ];
+  const createdVehicles = [];
+  for (const v of vehicles) {
+    createdVehicles.push(
+      await prisma.vehicle.upsert({ where: { plate: v.plate }, update: {}, create: v }),
+    );
+  }
+
+  await prisma.traccarDevice.upsert({
+    where: { uniqueId: "356938035643809" },
+    update: {},
+    create: {
+      vehicleId: createdVehicles[0].id,
+      uniqueId: "356938035643809",
+      name: "AB123CD",
+      monitoringIntervalSeconds: 60,
+    },
+  });
+
   console.log("Seed base OK:", {
     orgUnits: [direccion.name, operaciones.name, mantenimiento.name, baseNorte.name, baseSur.name],
     users: users.map((u) => u.email),

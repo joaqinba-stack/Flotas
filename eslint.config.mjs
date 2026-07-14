@@ -27,7 +27,7 @@ const restrictedPrismaImport = {
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: [".next/**", "node_modules/**", "var/**", "prisma/migrations/**"],
+    ignores: [".next/**", "node_modules/**", "var/**", "prisma/migrations/**", "next-env.d.ts"],
   },
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.mts"],

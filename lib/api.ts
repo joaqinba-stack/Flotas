@@ -4,6 +4,17 @@ import { ApiError } from "@/lib/errors";
 
 type Handler<Ctx> = (req: Request, ctx: Ctx) => Promise<Response>;
 
+// JSON.stringify seguro para BigInt (traccarPositionId) y Decimal de Prisma.
+export function json(data: unknown, init?: ResponseInit): Response {
+  const body = JSON.stringify(data, (_key, value) =>
+    typeof value === "bigint" ? value.toString() : value,
+  );
+  return new Response(body, {
+    ...init,
+    headers: { "content-type": "application/json", ...init?.headers },
+  });
+}
+
 export function apiHandler<Ctx>(fn: Handler<Ctx>): Handler<Ctx> {
   return async (req, ctx) => {
     try {

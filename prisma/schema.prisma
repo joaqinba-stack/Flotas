@@ -27,6 +27,7 @@ model OrgUnit {
   children  OrgUnit[] @relation("OrgTree")
   users     User[]
   drivers   Driver[]
+  vehicles  Vehicle[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -53,6 +54,7 @@ model User {
   driver       Driver?   @relation(fields: [driverId], references: [id])
   supplierId   String?
   supplier     Supplier? @relation(fields: [supplierId], references: [id])
+  vehicleStatusChanges VehicleStatusHistory[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -76,10 +78,106 @@ model Driver {
   orgUnitId       String
   orgUnit         OrgUnit      @relation(fields: [orgUnitId], references: [id])
   user            User?
+  assignedVehicles Vehicle[]   @relation("VehicleCurrentDriver")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
   @@index([orgUnitId])
+}
+
+enum VehicleStatus {
+  ACTIVE
+  IN_MAINTENANCE
+  OUT_OF_SERVICE
+}
+
+enum FuelType {
+  NAFTA
+  DIESEL
+  GNC
+  ELECTRICO
+}
+
+model Vehicle {
+  id                 String                 @id @default(cuid())
+  plate              String                 @unique
+  brand              String
+  model              String
+  year               Int
+  type               String
+  fuelType           FuelType
+  tankCapacityLiters Decimal?               @db.Decimal(6, 1)
+  odometerKm         Int                    @default(0)
+  status             VehicleStatus          @default(ACTIVE)
+  orgUnitId          String
+  orgUnit            OrgUnit                @relation(fields: [orgUnitId], references: [id])
+  currentDriverId    String?
+  currentDriver      Driver?                @relation("VehicleCurrentDriver", fields: [currentDriverId], references: [id])
+  traccarDevice      TraccarDevice?
+  statusHistory      VehicleStatusHistory[]
+  positions          PositionSnapshot[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([orgUnitId])
+  @@index([currentDriverId])
+}
+
+model VehicleStatusHistory {
+  id          String         @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle        @relation(fields: [vehicleId], references: [id])
+  fromStatus  VehicleStatus?
+  toStatus    VehicleStatus
+  reason      String?
+  changedById String
+  changedBy   User           @relation(fields: [changedById], references: [id])
+  createdAt   DateTime       @default(now())
+
+  @@index([vehicleId, createdAt])
+}
+
+enum DeviceConnectionStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+
+model TraccarDevice {
+  id                        String                 @id @default(cuid())
+  vehicleId                 String                 @unique
+  vehicle                   Vehicle                @relation(fields: [vehicleId], references: [id])
+  // id interno del dispositivo en el servidor Traccar (null si aún no se pudo provisionar allá)
+  traccarId                 Int?                   @unique
+  uniqueId                  String                 @unique
+  name                      String
+  monitoringIntervalSeconds Int                    @default(60)
+  connectionStatus          DeviceConnectionStatus @default(UNKNOWN)
+  lastSeenAt                DateTime?
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+}
+
+model PositionSnapshot {
+  id                String   @id @default(cuid())
+  vehicleId         String
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id])
+  // id de la posición en Traccar, para deduplicar entre WebSocket/polling/webhook
+  traccarPositionId BigInt?  @unique
+  latitude          Float
+  longitude         Float
+  speedKmh          Float
+  course            Float?
+  ignition          Boolean?
+  odometerKm        Float?
+  recordedAt        DateTime
+  receivedAt        DateTime @default(now())
+  // true cuando recordedAt quedó muy por detrás de receivedAt: dato reconciliado
+  // desde el buffer offline del dispositivo (corte de señal/eléctrico)
+  isBuffered        Boolean  @default(false)
+  attributes        Json?
+
+  @@index([vehicleId, recordedAt])
 }
 
 model Supplier {
