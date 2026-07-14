@@ -1,0 +1,50 @@
+services:
+  app-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: flotas
+      POSTGRES_PASSWORD: flotas
+      POSTGRES_DB: flotas
+    ports:
+      - "5432:5432"
+    volumes:
+      - app-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flotas"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Traccar tiene SU PROPIA base de datos, separada del esquema de la app.
+  # La integración es exclusivamente vía API/WebSocket de Traccar.
+  traccar-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: traccar
+      POSTGRES_PASSWORD: traccar
+      POSTGRES_DB: traccar
+    volumes:
+      - traccar-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traccar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  traccar:
+    image: traccar/traccar:6.5-ubuntu
+    depends_on:
+      traccar-db:
+        condition: service_healthy
+    ports:
+      - "8082:8082"       # Web UI + API REST/WebSocket
+      - "5013:5013"       # Protocolo GPS (ej. h02); agregar puertos según hardware adquirido
+      - "5023:5023"       # Protocolo teltonika
+    volumes:
+      - ./docker/traccar/traccar.xml:/opt/traccar/conf/traccar.xml:ro
+      - traccar-data:/opt/traccar/data
+
+volumes:
+  app-db-data:
+  traccar-db-data:
+  traccar-data:

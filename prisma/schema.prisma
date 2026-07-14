@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  DRIVER
+  SUPPLIER
+  DESK_AGENT
+}
+
+model OrgUnit {
+  id        String    @id @default(cuid())
+  name      String
+  kind      OrgUnitKind
+  // Materialized path de ids con separador "/" y barra final: "/<rootId>/<childId>/".
+  // El scoping por jerarquía es `path startsWith <path del viewer>`.
+  path      String    @unique
+  parentId  String?
+  parent    OrgUnit?  @relation("OrgTree", fields: [parentId], references: [id])
+  children  OrgUnit[] @relation("OrgTree")
+  users     User[]
+  drivers   Driver[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([parentId])
+  @@index([path])
+}
+
+enum OrgUnitKind {
+  DIRECCION
+  DEPARTAMENTO
+  BASE_LOGISTICA
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role
+  active       Boolean   @default(true)
+  orgUnitId    String?
+  orgUnit      OrgUnit?  @relation(fields: [orgUnitId], references: [id])
+  driverId     String?   @unique
+  driver       Driver?   @relation(fields: [driverId], references: [id])
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Driver {
+  id              String       @id @default(cuid())
+  firstName       String
+  lastName        String
+  documentId      String       @unique
+  licenseNumber   String
+  licenseCategory String
+  licenseExpiry   DateTime
+  phone           String?
+  status          DriverStatus @default(ACTIVE)
+  orgUnitId       String
+  orgUnit         OrgUnit      @relation(fields: [orgUnitId], references: [id])
+  user            User?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([orgUnitId])
+}
+
+model Supplier {
+  id            String  @id @default(cuid())
+  name          String
+  taxId         String  @unique
+  serviceTypes  String
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  active        Boolean @default(true)
+  users         User[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
