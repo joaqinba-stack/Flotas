@@ -13,6 +13,9 @@ export {
   TireMovementType,
   AuxAssetStatus,
   AuxAssetMovementType,
+  ViaticoStatus,
+  PermitStatus,
+  PerformanceKind,
 } from "@prisma/client";
 export type {
   OrgUnit,
@@ -29,4 +32,8 @@ export type {
   TireMovement,
   AuxiliaryAsset,
   AuxiliaryAssetMovement,
+  Viatico,
+  Permit,
+  Novedad,
+  DriverPerformanceRecord,
 } from "@prisma/client";

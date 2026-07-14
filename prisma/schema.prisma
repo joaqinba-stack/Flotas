@@ -61,6 +61,12 @@ model User {
   fuelLoadsReviewed    FuelLoad[]               @relation("FuelReviewedBy")
   tireMovements        TireMovement[]
   auxAssetMovements    AuxiliaryAssetMovement[]
+  viaticosApproved     Viatico[]                @relation("ViaticoApprovedBy")
+  viaticosCreated      Viatico[]                @relation("ViaticoCreatedBy")
+  permitsApproved      Permit[]                 @relation("PermitApprovedBy")
+  permitsRequested     Permit[]                 @relation("PermitRequestedBy")
+  novedadesReported    Novedad[]
+  performanceRecorded  DriverPerformanceRecord[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -87,6 +93,9 @@ model Driver {
   assignedVehicles Vehicle[]   @relation("VehicleCurrentDriver")
   jornadas        JornadaOperativa[]
   fuelLoads       FuelLoad[]
+  viaticos        Viatico[]
+  permits         Permit[]
+  performanceRecords DriverPerformanceRecord[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -199,6 +208,10 @@ model JornadaOperativa {
   status          JornadaStatus @default(PLANNED)
   notes           String?
   fuelLoads       FuelLoad[]
+  viaticos        Viatico[]
+  permits         Permit[]
+  novedades       Novedad[]
+  performanceRecords DriverPerformanceRecord[]
   createdById     String
   createdBy       User          @relation("JornadaCreatedBy", fields: [createdById], references: [id])
   createdAt       DateTime      @default(now())
@@ -208,6 +221,95 @@ model JornadaOperativa {
   @@index([driverId, plannedStart])
   @@index([orgUnitId])
   @@index([status])
+}
+
+enum ViaticoStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model Viatico {
+  id           String           @id @default(cuid())
+  jornadaId    String
+  jornada      JornadaOperativa @relation(fields: [jornadaId], references: [id])
+  driverId     String
+  driver       Driver           @relation(fields: [driverId], references: [id])
+  concept      String
+  amount       Decimal          @db.Decimal(12, 2)
+  status       ViaticoStatus    @default(REQUESTED)
+  approvedById String?
+  approvedBy   User?            @relation("ViaticoApprovedBy", fields: [approvedById], references: [id])
+  createdById  String
+  createdBy    User             @relation("ViaticoCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime         @default(now())
+
+  @@index([jornadaId])
+  @@index([driverId])
+}
+
+enum PermitStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Permit {
+  id            String           @id @default(cuid())
+  jornadaId     String
+  jornada       JornadaOperativa @relation(fields: [jornadaId], references: [id])
+  driverId      String
+  driver        Driver           @relation(fields: [driverId], references: [id])
+  type          String
+  description   String
+  status        PermitStatus     @default(PENDING)
+  approvedById  String?
+  approvedBy    User?            @relation("PermitApprovedBy", fields: [approvedById], references: [id])
+  requestedById String
+  requestedBy   User             @relation("PermitRequestedBy", fields: [requestedById], references: [id])
+  createdAt     DateTime         @default(now())
+
+  @@index([jornadaId])
+  @@index([driverId])
+}
+
+model Novedad {
+  id           String           @id @default(cuid())
+  jornadaId    String
+  jornada      JornadaOperativa @relation(fields: [jornadaId], references: [id])
+  category     String
+  description  String
+  occurredAt   DateTime
+  reportedById String
+  reportedBy   User             @relation(fields: [reportedById], references: [id])
+  createdAt    DateTime         @default(now())
+
+  @@index([jornadaId])
+}
+
+enum PerformanceKind {
+  COMMENDATION
+  SANCTION
+  TRAINING
+  OBSERVATION
+}
+
+// Legajo histórico de desempeño: append-only, sin update/delete en lib/data.
+model DriverPerformanceRecord {
+  id           String            @id @default(cuid())
+  driverId     String
+  driver       Driver            @relation(fields: [driverId], references: [id])
+  kind         PerformanceKind
+  summary      String
+  details      String?
+  jornadaId    String?
+  jornada      JornadaOperativa? @relation(fields: [jornadaId], references: [id])
+  recordedById String
+  recordedBy   User              @relation(fields: [recordedById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  @@index([driverId, createdAt])
 }
 
 enum FuelValidationStatus {

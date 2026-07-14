@@ -71,6 +71,9 @@ export async function getJornada(session: SessionUser, id: string) {
       orgUnit: { select: { id: true, name: true } },
       createdBy: { select: { name: true } },
       fuelLoads: { orderBy: { loadedAt: "asc" } },
+      viaticos: { orderBy: { createdAt: "asc" }, include: { approvedBy: { select: { name: true } }, createdBy: { select: { name: true } } } },
+      permits: { orderBy: { createdAt: "asc" }, include: { approvedBy: { select: { name: true } }, requestedBy: { select: { name: true } } } },
+      novedades: { orderBy: { occurredAt: "asc" }, include: { reportedBy: { select: { name: true } } } },
     },
   });
   if (!jornada) throw new NotFoundError("Jornada operativa no encontrada");

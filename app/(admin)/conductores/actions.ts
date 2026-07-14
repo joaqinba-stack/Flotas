@@ -3,8 +3,9 @@
 import { requireSession } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
 import { formDataToObject, runFormAction } from "@/lib/actions";
-import { driverInputSchema, driverLoginSchema } from "@/lib/validation/inputs";
+import { driverInputSchema, driverLoginSchema, performanceRecordSchema } from "@/lib/validation/inputs";
 import { createDriver, updateDriver } from "@/lib/data/drivers";
+import { addPerformanceRecord } from "@/lib/data/performance-records";
 
 export async function createDriverAction(formData: FormData) {
   const session = await requireSession(Role.SUPERVISOR);
@@ -17,6 +18,18 @@ export async function createDriverAction(formData: FormData) {
     const driver = await createDriver(session, input, login);
     return `/conductores/${driver.id}`;
   });
+}
+
+export async function addPerformanceRecordAction(driverId: string, formData: FormData) {
+  const session = await requireSession(Role.SUPERVISOR);
+  return runFormAction(
+    { errorPath: `/conductores/${driverId}`, revalidate: [`/conductores/${driverId}`] },
+    async () => {
+      const input = performanceRecordSchema.parse(formDataToObject(formData));
+      await addPerformanceRecord(session, driverId, input);
+      return `/conductores/${driverId}`;
+    },
+  );
 }
 
 export async function updateDriverAction(id: string, formData: FormData) {

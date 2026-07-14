@@ -6,6 +6,7 @@ import {
   OrgUnitKind,
   TireMovementType,
   AuxAssetMovementType,
+  PerformanceKind,
 } from "@/lib/data/types";
 
 const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
@@ -115,4 +116,31 @@ export const jornadaInputSchema = z.object({
   plannedStart: z.coerce.date(),
   plannedEnd: z.coerce.date(),
   notes: optionalString,
+});
+
+export const odometerSchema = z.object({
+  odometerKm: optionalNumber.pipe(z.number().int().min(0).nullable()),
+});
+
+export const viaticoInputSchema = z.object({
+  concept: z.string().trim().min(2),
+  amount: z.coerce.number().positive(),
+});
+
+export const permitInputSchema = z.object({
+  type: z.string().trim().min(2),
+  description: z.string().trim().min(2),
+});
+
+export const novedadInputSchema = z.object({
+  category: z.string().trim().min(2),
+  description: z.string().trim().min(2),
+  occurredAt: z.coerce.date(),
+});
+
+export const performanceRecordSchema = z.object({
+  kind: z.nativeEnum(PerformanceKind),
+  summary: z.string().trim().min(3),
+  details: optionalString,
+  jornadaId: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().nullable()),
 });
