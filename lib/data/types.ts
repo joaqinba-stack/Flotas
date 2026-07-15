@@ -27,6 +27,8 @@ export {
   ReportDataset,
   ReportFormat,
   ReportRunStatus,
+  DeskChannel,
+  DeskTicketStatus,
 } from "@prisma/client";
 export type {
   OrgUnit,
@@ -57,4 +59,6 @@ export type {
   AlertNotificationLog,
   ReportDefinition,
   ReportRun,
+  DeskTicket,
+  DeskTicketNote,
 } from "@prisma/client";

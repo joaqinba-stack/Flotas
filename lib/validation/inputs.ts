@@ -12,6 +12,8 @@ import {
   ServiceOrderStatus,
   AlertStatus,
   ReportFormat,
+  DeskChannel,
+  DeskTicketStatus,
 } from "@/lib/data/types";
 
 const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
@@ -233,4 +235,26 @@ export const reportRunInputSchema = z.object({
     (v) => (typeof v === "string" ? JSON.parse(v || "{}") : (v ?? {})),
     z.record(z.unknown()),
   ),
+});
+
+const emptyToNullId = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
+
+export const deskTicketInputSchema = z.object({
+  channel: z.nativeEnum(DeskChannel),
+  subject: z.string().trim().min(3),
+  description: z.string().trim().min(3),
+  priority: z.nativeEnum(IncidentUrgency),
+  requesterName: z.string().trim().min(2),
+  requesterContact: optionalString,
+  vehicleId: z.preprocess(emptyToNullId, z.string().nullable()),
+  linkedIncidentId: z.preprocess(emptyToNullId, z.string().nullable()),
+  linkedJornadaId: z.preprocess(emptyToNullId, z.string().nullable()),
+});
+
+export const deskTicketStatusSchema = z.object({
+  toStatus: z.nativeEnum(DeskTicketStatus),
+});
+
+export const deskTicketAssignSchema = z.object({
+  assignedToId: z.preprocess(emptyToNullId, z.string().nullable()),
 });
