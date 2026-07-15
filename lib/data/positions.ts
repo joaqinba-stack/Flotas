@@ -87,3 +87,13 @@ export async function systemLatestPositionAt(vehicleId: string): Promise<Date | 
   });
   return last?.recordedAt ?? null;
 }
+
+// [más reciente, anterior] — usado por el motor de reglas para detectar
+// transiciones de geocerca comparando dos posiciones consecutivas.
+export async function systemLatestTwoPositions(vehicleId: string) {
+  return prisma.positionSnapshot.findMany({
+    where: { vehicleId },
+    orderBy: { recordedAt: "desc" },
+    take: 2,
+  });
+}

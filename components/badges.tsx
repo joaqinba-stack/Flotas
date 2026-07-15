@@ -47,6 +47,13 @@ const STYLES: Record<string, { label: string; tone: string }> = {
   // Alertas
   NEW: { label: "Nueva", tone: "red" },
   ACKNOWLEDGED: { label: "Reconocida", tone: "yellow" },
+  INFO: { label: "Informativa", tone: "blue" },
+  WARNING: { label: "Advertencia", tone: "yellow" },
+  SPEEDING: { label: "Exceso de velocidad", tone: "red" },
+  GEOFENCE_ENTER: { label: "Ingreso a geocerca", tone: "blue" },
+  GEOFENCE_EXIT: { label: "Salida de geocerca", tone: "blue" },
+  DEVICE_DISCONNECTED: { label: "Dispositivo desconectado", tone: "red" },
+  UNAUTHORIZED_MOVEMENT: { label: "Movimiento no autorizado", tone: "red" },
   // Reportes
   QUEUED: { label: "En cola", tone: "blue" },
   RUNNING: { label: "Generando", tone: "yellow" },

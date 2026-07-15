@@ -75,8 +75,9 @@ async function main() {
     { email: "mesa@flotas.local", name: "Agente Mesa 24/7", role: Role.DESK_AGENT, orgUnitId: direccion.id },
   ];
 
+  let adminUser;
   for (const u of users) {
-    await prisma.user.upsert({
+    const created = await prisma.user.upsert({
       where: { email: u.email },
       update: { role: u.role, orgUnitId: u.orgUnitId ?? null, driverId: u.driverId ?? null, supplierId: u.supplierId ?? null },
       create: {
@@ -89,6 +90,7 @@ async function main() {
         supplierId: u.supplierId ?? null,
       },
     });
+    if (u.role === Role.ADMIN) adminUser = created;
   }
 
   const driver2 = await prisma.driver.upsert({
@@ -129,6 +131,26 @@ async function main() {
       monitoringIntervalSeconds: 60,
     },
   });
+
+  if (adminUser) {
+    await prisma.geofence.upsert({
+      where: { id: "seed-geofence-base-norte" },
+      update: {},
+      create: {
+        id: "seed-geofence-base-norte",
+        name: "Perímetro Base Norte",
+        description: "Área operativa habitual de la Base Logística Norte",
+        polygon: [
+          [-34.55, -58.48],
+          [-34.55, -58.44],
+          [-34.58, -58.44],
+          [-34.58, -58.48],
+        ],
+        orgUnitId: baseNorte.id,
+        createdById: adminUser.id,
+      },
+    });
+  }
 
   console.log("Seed base OK:", {
     orgUnits: [direccion.name, operaciones.name, mantenimiento.name, baseNorte.name, baseSur.name],

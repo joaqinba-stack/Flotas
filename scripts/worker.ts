@@ -1,9 +1,11 @@
 import { startWebsocketConnector } from "@/lib/traccar/websocket-connector";
 import { ingestTraccarPositions, pollTraccarPositions } from "@/lib/jobs/poll-traccar-positions";
+import { evaluateAlertRules } from "@/lib/jobs/evaluate-alert-rules";
 import { systemSetConnectionStatus } from "@/lib/data/traccar-devices";
 import { DeviceConnectionStatus } from "@/lib/data/types";
 
 const POLL_INTERVAL_MS = 60_000;
+const ALERT_EVAL_INTERVAL_MS = 30_000;
 
 async function safe(name: string, fn: () => Promise<unknown>) {
   try {
@@ -19,6 +21,7 @@ function main() {
   startWebsocketConnector({
     onPositions: async (positions) => {
       await safe("ws-ingest", () => ingestTraccarPositions(positions));
+      await safe("alert-rules", evaluateAlertRules);
     },
     onDeviceStatus: async (devices) => {
       for (const d of devices) {
@@ -36,7 +39,9 @@ function main() {
   });
 
   setInterval(() => void safe("poll-positions", pollTraccarPositions), POLL_INTERVAL_MS);
+  setInterval(() => void safe("alert-rules", evaluateAlertRules), ALERT_EVAL_INTERVAL_MS);
   void safe("poll-positions", pollTraccarPositions);
+  void safe("alert-rules", evaluateAlertRules);
 }
 
 main();

@@ -19,6 +19,11 @@ export {
   IncidentUrgency,
   IncidentStatus,
   ServiceOrderStatus,
+  AlertType,
+  AlertSeverity,
+  AlertStatus,
+  NotificationChannel,
+  NotificationStatus,
 } from "@prisma/client";
 export type {
   OrgUnit,
@@ -44,4 +49,7 @@ export type {
   IncidentAttachment,
   SupplierServiceOrder,
   SupplierServiceOrderNote,
+  Geofence,
+  Alert,
+  AlertNotificationLog,
 } from "@prisma/client";

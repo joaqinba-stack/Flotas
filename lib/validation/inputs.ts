@@ -10,6 +10,7 @@ import {
   IncidentUrgency,
   IncidentStatus,
   ServiceOrderStatus,
+  AlertStatus,
 } from "@/lib/data/types";
 
 const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
@@ -196,4 +197,20 @@ export const performanceRecordSchema = z.object({
   summary: z.string().trim().min(3),
   details: optionalString,
   jornadaId: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().nullable()),
+});
+
+const latLngSchema = z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]);
+
+export const geofencePolygonSchema = z.array(latLngSchema).min(3, "El polígono necesita al menos 3 vértices");
+
+export const geofenceInputSchema = z.object({
+  name: z.string().trim().min(2),
+  description: optionalString,
+  polygon: z.preprocess((v) => (typeof v === "string" ? JSON.parse(v) : v), geofencePolygonSchema),
+  orgUnitId: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().nullable()),
+  active: z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
+});
+
+export const alertAcknowledgeSchema = z.object({
+  status: z.nativeEnum(AlertStatus),
 });
