@@ -76,6 +76,7 @@ async function main() {
   ];
 
   let adminUser;
+  let deskUser;
   for (const u of users) {
     const created = await prisma.user.upsert({
       where: { email: u.email },
@@ -91,6 +92,7 @@ async function main() {
       },
     });
     if (u.role === Role.ADMIN) adminUser = created;
+    if (u.role === Role.DESK_AGENT) deskUser = created;
   }
 
   const driver2 = await prisma.driver.upsert({
@@ -148,6 +150,24 @@ async function main() {
         ],
         orgUnitId: baseNorte.id,
         createdById: adminUser.id,
+      },
+    });
+  }
+
+  if (deskUser) {
+    await prisma.deskTicket.upsert({
+      where: { id: "seed-desk-ticket-1" },
+      update: {},
+      create: {
+        id: "seed-desk-ticket-1",
+        channel: "PHONE",
+        subject: "Consulta por demora de unidad",
+        description: "El solicitante reporta que la unidad AB123CD no llegó al punto de encuentro pautado.",
+        priority: "MEDIUM",
+        requesterName: "Área Logística",
+        requesterContact: "+54 11 4000-0000",
+        vehicleId: createdVehicles[0].id,
+        createdById: deskUser.id,
       },
     });
   }
