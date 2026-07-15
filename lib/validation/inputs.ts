@@ -11,6 +11,7 @@ import {
   IncidentStatus,
   ServiceOrderStatus,
   AlertStatus,
+  ReportFormat,
 } from "@/lib/data/types";
 
 const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
@@ -213,4 +214,23 @@ export const geofenceInputSchema = z.object({
 
 export const alertAcknowledgeSchema = z.object({
   status: z.nativeEnum(AlertStatus),
+});
+
+export const reportDefinitionInputSchema = z.object({
+  name: z.string().trim().min(3),
+  description: optionalString,
+  dataset: z.string().min(1),
+  columns: z.preprocess(
+    (v) => (typeof v === "string" ? [v] : v),
+    z.array(z.string()).min(1, "Seleccione al menos una columna"),
+  ),
+  filters: z.preprocess((v) => (typeof v === "string" ? JSON.parse(v || "{}") : (v ?? {})), z.record(z.unknown())),
+});
+
+export const reportRunInputSchema = z.object({
+  format: z.nativeEnum(ReportFormat),
+  filterOverrides: z.preprocess(
+    (v) => (typeof v === "string" ? JSON.parse(v || "{}") : (v ?? {})),
+    z.record(z.unknown()),
+  ),
 });

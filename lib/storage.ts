@@ -30,3 +30,28 @@ export async function readUpload(storageKey: string): Promise<Buffer> {
   }
   return readFile(path.join(baseDir(), normalized));
 }
+
+function reportsDir(): string {
+  return process.env.REPORTS_DIR ?? "./var/reports";
+}
+
+export async function saveReportFile(
+  prefix: string,
+  filename: string,
+  contents: Buffer,
+): Promise<string> {
+  const safeName = filename.replace(/[^\w.\-]/g, "_").slice(0, 120) || "reporte";
+  const storageKey = path.posix.join(prefix, `${randomUUID()}-${safeName}`);
+  const fullPath = path.join(reportsDir(), storageKey);
+  await mkdir(path.dirname(fullPath), { recursive: true });
+  await writeFile(fullPath, contents);
+  return storageKey;
+}
+
+export async function readReportFile(storageKey: string): Promise<Buffer> {
+  const normalized = path.posix.normalize(storageKey);
+  if (normalized.startsWith("..") || path.isAbsolute(normalized)) {
+    throw new Error("storageKey inválida");
+  }
+  return readFile(path.join(reportsDir(), normalized));
+}

@@ -75,6 +75,8 @@ model User {
   serviceOrderNotes    SupplierServiceOrderNote[]
   geofencesCreated     Geofence[]                 @relation("GeofenceCreatedBy")
   alertsAcknowledged   Alert[]                    @relation("AlertAcknowledgedBy")
+  reportDefinitionsCreated ReportDefinition[]      @relation("ReportDefinitionCreatedBy")
+  reportRunsRequested  ReportRun[]                @relation("ReportRunRequestedBy")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -696,4 +698,64 @@ model AlertNotificationLog {
   createdAt DateTime            @default(now())
 
   @@index([alertId])
+}
+
+enum ReportDataset {
+  VEHICLES
+  DRIVERS
+  FUEL_LOADS
+  JORNADAS
+  INCIDENTS
+  ALERTS
+}
+
+model ReportDefinition {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  dataset     ReportDataset
+  // Columnas seleccionadas y filtros, validados con Zod por dataset
+  // (lib/reports/definitions.ts) antes de persistir o ejecutar.
+  columns     Json
+  filters     Json
+  createdById String
+  createdBy   User           @relation("ReportDefinitionCreatedBy", fields: [createdById], references: [id])
+  runs        ReportRun[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([createdById])
+}
+
+enum ReportFormat {
+  PDF
+  XLSX
+  CSV
+}
+
+enum ReportRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model ReportRun {
+  id                 String           @id @default(cuid())
+  reportDefinitionId String
+  reportDefinition   ReportDefinition @relation(fields: [reportDefinitionId], references: [id])
+  format             ReportFormat
+  status             ReportRunStatus  @default(QUEUED)
+  // Filtros efectivos de esta corrida (definición + overrides puntuales del usuario)
+  filters            Json
+  rowCount           Int?
+  resultStorageKey   String?
+  error              String?
+  requestedById      String
+  requestedBy        User             @relation("ReportRunRequestedBy", fields: [requestedById], references: [id])
+  createdAt          DateTime         @default(now())
+  completedAt        DateTime?
+
+  @@index([reportDefinitionId, createdAt])
+  @@index([status])
 }

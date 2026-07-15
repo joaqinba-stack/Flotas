@@ -24,6 +24,9 @@ export {
   AlertStatus,
   NotificationChannel,
   NotificationStatus,
+  ReportDataset,
+  ReportFormat,
+  ReportRunStatus,
 } from "@prisma/client";
 export type {
   OrgUnit,
@@ -52,4 +55,6 @@ export type {
   Geofence,
   Alert,
   AlertNotificationLog,
+  ReportDefinition,
+  ReportRun,
 } from "@prisma/client";
