@@ -8,9 +8,15 @@
 
   <entry key="web.port">8082</entry>
 
-  <!-- Reenvío de eventos hacia la app (alertas nativas: online/offline, geocercas, overspeed) -->
+  <!-- Protocolo OsmAnd (app Traccar Client en el celular). Debe coincidir con el
+       puerto publicado en docker-compose.yml y abierto en el firewall del VPS. -->
+  <entry key="osmand.port">5055</entry>
+
+  <!-- Reenvío de eventos hacia la app (alertas nativas: online/offline, geocercas, overspeed).
+       'app' es el nombre del servicio de la app en docker-compose (red interna de Docker).
+       El valor del header debe coincidir con TRACCAR_WEBHOOK_SECRET en .env. -->
   <entry key="event.forward.enable">true</entry>
-  <entry key="event.forward.url">http://host.docker.internal:3000/api/traccar/webhook</entry>
+  <entry key="event.forward.url">http://app:3000/api/traccar/webhook</entry>
   <entry key="event.forward.header">X-Traccar-Secret: cambiar-webhook-secret</entry>
 
   <entry key="geocoder.enable">false</entry>

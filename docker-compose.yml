@@ -38,11 +38,63 @@ services:
         condition: service_healthy
     ports:
       - "8082:8082"       # Web UI + API REST/WebSocket
+      - "5055:5055"       # OsmAnd — protocolo que usa la app Traccar Client (celular en la unidad)
       - "5013:5013"       # Protocolo GPS (ej. h02); agregar puertos según hardware adquirido
       - "5023:5023"       # Protocolo teltonika
     volumes:
       - ./docker/traccar/traccar.xml:/opt/traccar/conf/traccar.xml:ro
       - traccar-data:/opt/traccar/data
+
+  # Migraciones + seed. Corre una vez y termina (se re-ejecuta en cada `up`, es idempotente).
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      app-db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql://flotas:flotas@app-db:5432/flotas"
+    command: sh -c "npx prisma migrate deploy && npm run db:seed"
+    restart: "no"
+
+  # Aplicación web Next.js.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      app-db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql://flotas:flotas@app-db:5432/flotas"
+      TRACCAR_URL: "http://traccar:8082"
+      AUTH_TRUST_HOST: "true"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # Worker de background: WebSocket de Traccar, poll de posiciones, motor de
+  # alertas y cola de reportes. Misma imagen que la app, distinto comando.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      app-db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql://flotas:flotas@app-db:5432/flotas"
+      TRACCAR_URL: "http://traccar:8082"
+    command: ["npm", "run", "worker"]
+    restart: unless-stopped
 
 volumes:
   app-db-data:
