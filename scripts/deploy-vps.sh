@@ -22,6 +22,18 @@ APP_DIR="${APP_DIR:-/opt/flotas}"
 SEED_PASSWORD="${SEED_PASSWORD:-flotas123}"
 OPEN_FIREWALL="${OPEN_FIREWALL:-1}"
 
+echo "==> 0/5 Asegurando memoria swap (colchón para el build)"
+if [ ! -f /swapfile ] && ! swapon --show | grep -q .; then
+  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  echo "    swap de 2G activada"
+else
+  echo "    ya hay swap, se respeta"
+fi
+
 echo "==> 1/5 Instalando Docker (si falta)"
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
