@@ -14,6 +14,10 @@ async function login(formData: FormData) {
     });
   } catch (err) {
     if (err instanceof AuthError) {
+      // CredentialsSignin es el caso esperado (email o password que no coinciden).
+      // Cualquier otro AuthError es un problema de configuración o infraestructura
+      // y se pierde detrás del mismo mensaje genérico si no se registra acá.
+      if (err.type !== "CredentialsSignin") console.error("[login]", err.type, err.message);
       redirect(`/login?error=1&callbackUrl=${encodeURIComponent(callbackUrl)}`);
     }
     throw err;
