@@ -17,7 +17,7 @@
        El valor del header debe coincidir con TRACCAR_WEBHOOK_SECRET en .env. -->
   <entry key="event.forward.enable">true</entry>
   <entry key="event.forward.url">http://app:3000/api/traccar/webhook</entry>
-  <entry key="event.forward.header">X-Traccar-Secret: cambiar-webhook-secret</entry>
+  <entry key="event.forward.header">X-Traccar-Secret: 2584355c3cc95ac09fa3db9ccf190e77</entry>
 
   <entry key="geocoder.enable">false</entry>
 </properties>

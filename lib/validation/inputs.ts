@@ -258,3 +258,44 @@ export const deskTicketStatusSchema = z.object({
 export const deskTicketAssignSchema = z.object({
   assignedToId: z.preprocess(emptyToNullId, z.string().nullable()),
 });
+
+// --- Gestión de usuarios y recuperación de contraseña ---
+
+// Roles administrables desde la pantalla Usuarios. Las cuentas DRIVER y
+// SUPPLIER se crean desde Conductores/Proveedores para mantener el vínculo
+// con su legajo/razón social.
+export const MANAGED_ROLES = ["ADMIN", "SUPERVISOR", "DESK_AGENT"] as const;
+
+export const userCreateSchema = z.object({
+  name: z.string().trim().min(2),
+  email: z.string().trim().email(),
+  role: z.enum(MANAGED_ROLES),
+  orgUnitId: z.preprocess(emptyToNullId, z.string().nullable()),
+  password: z.string().min(8),
+});
+
+export const userUpdateSchema = z.object({
+  name: z.string().trim().min(2),
+  role: z.enum(MANAGED_ROLES).optional(),
+  orgUnitId: z.preprocess(emptyToNullId, z.string().nullable()),
+  active: z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
+});
+
+export const setPasswordSchema = z.object({
+  password: z.string().min(8),
+});
+
+export const passwordResetRequestSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export const passwordResetSchema = z
+  .object({
+    token: z.string().min(20),
+    password: z.string().min(8),
+    confirm: z.string().min(8),
+  })
+  .refine((d) => d.password === d.confirm, {
+    path: ["confirm"],
+    message: "Las contraseñas no coinciden",
+  });

@@ -5,7 +5,11 @@ import { authConfig } from "@/lib/auth/config";
 const { auth } = NextAuth(authConfig);
 
 // Guard grueso por prefijo de ruta. El scoping fino vive siempre en lib/data.
+// Rutas públicas del flujo de recuperación de contraseña (sin sesión).
+const PUBLIC_PATHS = ["/recuperar", "/restablecer"];
+
 const ROUTE_ROLES: Array<{ prefix: string; roles: string[] }> = [
+  { prefix: "/usuarios", roles: ["ADMIN"] },
   { prefix: "/panel", roles: ["ADMIN", "SUPERVISOR"] },
   { prefix: "/flota", roles: ["ADMIN", "SUPERVISOR"] },
   { prefix: "/conductores", roles: ["ADMIN", "SUPERVISOR"] },
@@ -42,6 +46,10 @@ export default auth((req) => {
     if (user) {
       return NextResponse.redirect(new URL(HOME_BY_ROLE[user.role] ?? "/", req.nextUrl));
     }
+    return NextResponse.next();
+  }
+
+  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();
   }
 

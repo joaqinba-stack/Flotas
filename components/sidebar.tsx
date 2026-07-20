@@ -46,6 +46,12 @@ const ADMIN_NAV: NavSection[] = [
   },
 ];
 
+// Solo visible para ADMIN (el middleware bloquea /usuarios para el resto).
+const ADMIN_ONLY_SECTION: NavSection = {
+  title: "Administración",
+  links: [{ href: "/usuarios", label: "Usuarios" }],
+};
+
 const DRIVER_NAV: NavSection[] = [
   {
     title: "Mi operación",
@@ -98,7 +104,10 @@ const ROLE_LABEL: Record<Role, string> = {
 };
 
 export function Sidebar({ session }: { session: SessionUser }) {
-  const sections = navFor(session.role);
+  const sections =
+    session.role === Role.ADMIN
+      ? [...navFor(session.role), ADMIN_ONLY_SECTION]
+      : navFor(session.role);
   return (
     <aside className="sidebar">
       <div className="brand">
