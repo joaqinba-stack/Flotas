@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
-
-type NavSection = { title: string; links: Array<{ href: string; label: string }> };
+import { SidebarNav, type NavSection } from "./sidebar-nav";
 
 const ADMIN_NAV: NavSection[] = [
   {
@@ -109,23 +107,12 @@ export function Sidebar({ session }: { session: SessionUser }) {
       ? [...navFor(session.role), ADMIN_ONLY_SECTION]
       : navFor(session.role);
   return (
-    <aside className="sidebar">
+    <aside className="ds sidebar">
       <div className="brand">
-        Flotas
+        FLOTAS
         <small>Parque automotor institucional</small>
       </div>
-      <nav>
-        {sections.map((section) => (
-          <div key={section.title}>
-            <div className="nav-section">{section.title}</div>
-            {section.links.map((link) => (
-              <Link key={link.href} href={link.href}>
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        ))}
-      </nav>
+      <SidebarNav sections={sections} />
       <div className="session-box">
         <strong>{session.name}</strong>
         {ROLE_LABEL[session.role]}
@@ -135,7 +122,7 @@ export function Sidebar({ session }: { session: SessionUser }) {
             await signOut({ redirectTo: "/login" });
           }}
         >
-          <button className="btn small secondary" style={{ marginTop: 8 }} type="submit">
+          <button className="btn btn-secondary btn-block" type="submit">
             Cerrar sesión
           </button>
         </form>

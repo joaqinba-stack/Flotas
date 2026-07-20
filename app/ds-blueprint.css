@@ -1,0 +1,243 @@
+/* Design system "blueprint", importado del proyecto "Panel de administrador"
+   de claude.ai/design.
+
+   Todo cuelga de .ds a propósito. El sistema pisa nombres que globals.css ya
+   usa con otra estética (.card, .btn, .table, .badge), así que acotarlo por
+   scope deja las ~59 pantallas restantes con su look original hasta que se
+   migren de a una. Para sumar una pantalla al sistema alcanza con ponerle .ds
+   al contenedor raíz. */
+
+.ds {
+  --color-bg: #f2f2f3;
+  --color-surface: #e9e9ea;
+  --color-text: #1d1f20;
+  --color-accent: #5980a6;
+  --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
+
+  --color-neutral-100: #f5f5f8;
+  --color-neutral-800: #424244;
+
+  --color-accent-100: #eef6ff;
+  --color-accent-200: #d6ebff;
+  --color-accent-300: #b5d9fd;
+  --color-accent-600: #597ea3;
+  --color-accent-700: #416180;
+  --color-accent-800: #2c455d;
+  --color-accent-900: #1d2d3d;
+
+  /* Las familias las inyecta next/font desde app/layout.tsx. El fallback
+     importa: si la descarga de Google Fonts falla en build, el sistema sigue
+     legible en vez de caer a serif. */
+  --font-heading: var(--font-barlow-condensed), "Barlow Condensed", system-ui, sans-serif;
+  --font-body: var(--font-barlow), "Barlow", system-ui, sans-serif;
+
+  --space-2: 6.8px;
+  --space-3: 10.2px;
+  --radius-md: 4px;
+
+  font-family: var(--font-body);
+  color: var(--color-text);
+}
+
+.ds h1, .ds h2, .ds h3 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+.ds h1 { font-size: 30px; margin: 0 0 24px; }
+.ds h2 { font-size: 20px; margin: 0 0 12px; }
+
+.ds .text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+
+/* — marco blueprint: caja rectangular con marcas de registro en las esquinas,
+     dibujadas por fuera del borde (de ahí el -6px y el position:relative) — */
+.ds .blueprint {
+  position: relative;
+  border: 1px solid var(--color-divider);
+  border-radius: 0;
+}
+.ds .blueprint > .corner {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.ds .blueprint > .corner::before,
+.ds .blueprint > .corner::after { content: ""; position: absolute; background: currentColor; }
+.ds .blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+.ds .blueprint > .corner::after { top: 5px; left: 0; width: 100%; height: 1px; }
+.ds .blueprint > .corner.tl { top: -6px; left: -6px; }
+.ds .blueprint > .corner.tr { top: -6px; right: -6px; }
+.ds .blueprint > .corner.bl { bottom: -6px; left: -6px; }
+.ds .blueprint > .corner.br { bottom: -6px; right: -6px; }
+
+/* — panel: rejilla de indicadores y accesos rápidos — */
+.ds .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* El gap tiene que superar los 6px que las marcas de esquina sobresalen de
+     cada caja, o las de dos tarjetas vecinas se tocan. */
+  gap: 20px;
+  margin-bottom: 28px;
+}
+.ds .kpi { padding: 16px 18px; }
+.ds .kpi .value {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.ds .kpi .label { font-size: 12px; }
+
+.ds .quicklinks { font-size: 13px; margin: 0 0 32px; }
+.ds .quicklinks a { color: var(--color-accent); text-decoration: none; }
+.ds .quicklinks a:hover { text-decoration: underline; }
+
+/* — tablas — */
+.ds .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ds .table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-divider);
+}
+.ds .table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+.ds .table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+/* Sin esto los links de la tabla se quedan con el azul de globals.css, que
+   desentona con el gris azulado del sistema. */
+.ds .table a { color: var(--color-accent); text-decoration: none; }
+.ds .table a:hover { text-decoration: underline; }
+
+/* — badges: reusamos el <StatusBadge> de components/badges.tsx (ya traduce los
+     enums a las etiquetas del diseño) y acá solo le cambiamos la piel a la
+     forma rectangular del sistema — */
+.ds .badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.ds .badge.green { background: color-mix(in srgb, #2f9e44 16%, transparent); color: #1f7a34; }
+.ds .badge.yellow { background: color-mix(in srgb, #d9a300 18%, transparent); color: #8a6600; }
+.ds .badge.red { background: color-mix(in srgb, #e03131 14%, transparent); color: #b02525; }
+.ds .badge.gray { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+.ds .badge.blue { background: var(--color-accent-100); color: var(--color-accent-800); }
+
+/* — botones — */
+.ds .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: 0;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+}
+.ds .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.ds .btn-block { width: 100%; }
+
+/* ── sidebar ──────────────────────────────────────────────────────────────
+   El aside es compartido por los shells de admin, mesa, conductor y
+   proveedor, así que este bloque los reviste a los cuatro por igual. */
+.ds.sidebar {
+  width: 240px;
+  background: var(--color-accent-900);
+  color: var(--color-accent-200);
+  padding: 24px 0;
+}
+.ds.sidebar .brand {
+  padding: 0 20px 16px;
+  border-bottom: 1px solid color-mix(in srgb, #fff 12%, transparent);
+  margin-bottom: 8px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+.ds.sidebar .brand small {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent-300);
+}
+
+/* Cabecera de sección: es un <button> porque pliega y despliega, pero tiene
+   que leerse igual que el rótulo estático que reemplaza. */
+.ds.sidebar .nav-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 20px 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-accent-300);
+  cursor: pointer;
+  text-align: left;
+}
+.ds.sidebar .nav-section:hover { color: #fff; }
+.ds.sidebar .nav-section .chev { font-size: 9px; }
+
+.ds.sidebar nav a {
+  display: block;
+  padding: 8px 20px;
+  font-size: 14px;
+  color: var(--color-accent-100);
+  text-decoration: none;
+}
+.ds.sidebar nav a:hover { background: var(--color-accent-800); color: #fff; }
+.ds.sidebar nav a[aria-current="page"] {
+  background: var(--color-accent);
+  color: var(--color-accent-900);
+  font-weight: 500;
+}
+.ds.sidebar .session-box {
+  border-top: 1px solid color-mix(in srgb, #fff 12%, transparent);
+  padding: 14px 20px 0;
+  font-size: 12px;
+  color: var(--color-accent-300);
+}
+.ds.sidebar .session-box strong { display: block; color: #fff; font-weight: 600; }
+.ds.sidebar .session-box .btn {
+  margin-top: 10px;
+  border-color: color-mix(in srgb, #fff 25%, transparent);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.ds.sidebar .session-box .btn:hover { background: color-mix(in srgb, #fff 12%, transparent); }
+
+/* globals.css lleva el sidebar a ancho completo abajo de 760px; sin repetirlo
+   acá el .ds.sidebar (más específico) lo dejaría clavado en 240px y rompería
+   el layout angosto. */
+@media (max-width: 760px) {
+  .ds.sidebar { width: 100%; }
+}
