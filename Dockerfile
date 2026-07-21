@@ -7,6 +7,7 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 COPY package.json package-lock.json ./
+COPY prisma ./prisma
 RUN npm ci
 
 # --- builder: genera Prisma Client y compila Next ---
