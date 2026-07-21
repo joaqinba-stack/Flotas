@@ -55,7 +55,7 @@ export async function listVehicles(
     include: {
       orgUnit: { select: { id: true, name: true } },
       currentDriver: { select: { id: true, firstName: true, lastName: true } },
-      traccarDevice: { select: { id: true, uniqueId: true, connectionStatus: true } },
+      traccarDevice: { select: { id: true, uniqueId: true, connectionStatus: true, traccarId: true } },
     },
   });
 }

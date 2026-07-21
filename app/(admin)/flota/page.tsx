@@ -60,7 +60,17 @@ export default async function FlotaPage({
               <td>{v.orgUnit.name}</td>
               <td>{v.currentDriver ? `${v.currentDriver.lastName}, ${v.currentDriver.firstName}` : <span className="muted">Sin asignar</span>}</td>
               <td>{fmtNumber(v.odometerKm)} km</td>
-              <td>{v.traccarDevice ? <StatusBadge value={v.traccarDevice.connectionStatus} /> : <span className="muted">Sin equipo</span>}</td>
+              <td>
+                {!v.traccarDevice ? (
+                  <span className="muted">Sin equipo</span>
+                ) : v.traccarDevice.traccarId === null ? (
+                  // Sin alta en Traccar el estado de conexión no significa nada:
+                  // mostrarlo como "Sin datos" haría parecer que el equipo existe.
+                  <StatusBadge value="SYNC_PENDING" />
+                ) : (
+                  <StatusBadge value={v.traccarDevice.connectionStatus} />
+                )}
+              </td>
               <td><StatusBadge value={v.status} /></td>
             </tr>
           ))}

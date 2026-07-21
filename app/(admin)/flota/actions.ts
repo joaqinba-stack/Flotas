@@ -68,8 +68,8 @@ export async function provisionDeviceAction(vehicleId: string, formData: FormDat
     { errorPath: `/flota/${vehicleId}`, revalidate: [`/flota/${vehicleId}`] },
     async () => {
       const input = deviceInputSchema.parse(formDataToObject(formData));
-      await provisionDevice(session, vehicleId, input);
-      return `/flota/${vehicleId}`;
+      const { syncWarning } = await provisionDevice(session, vehicleId, input);
+      return { path: `/flota/${vehicleId}`, warning: syncWarning };
     },
   );
 }
@@ -81,8 +81,8 @@ export async function updateDeviceAction(vehicleId: string, deviceId: string, fo
     async () => {
       const raw = formDataToObject(formData);
       const input = deviceInputSchema.omit({ uniqueId: true }).parse(raw);
-      await updateDevice(session, deviceId, input);
-      return `/flota/${vehicleId}`;
+      const { syncWarning } = await updateDevice(session, deviceId, input);
+      return { path: `/flota/${vehicleId}`, warning: syncWarning };
     },
   );
 }
@@ -92,8 +92,8 @@ export async function removeDeviceAction(vehicleId: string, deviceId: string) {
   return runFormAction(
     { errorPath: `/flota/${vehicleId}`, revalidate: [`/flota/${vehicleId}`] },
     async () => {
-      await removeDevice(session, deviceId);
-      return `/flota/${vehicleId}`;
+      const { syncWarning } = await removeDevice(session, deviceId);
+      return { path: `/flota/${vehicleId}`, warning: syncWarning };
     },
   );
 }

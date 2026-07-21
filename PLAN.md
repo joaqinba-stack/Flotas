@@ -24,7 +24,7 @@ Agrupado por dominio — campos representativos, no exhaustivos.
 - `User`: role (ADMIN, SUPERVISOR, DRIVER, SUPPLIER, DESK_AGENT), orgUnitId, driverId?, supplierId?.
 
 **Flota**
-- `Vehicle` ("Legajo operativo"): placa, estado, orgUnitId, currentDriverId, traccarDeviceId.
+- `Vehicle` ("Legajo operativo"): placa, estado, orgUnitId, currentDriverId. El vínculo con el GPS es la relación 1:1 inversa `TraccarDevice.vehicleId` (la FK vive en `TraccarDevice`, no en `Vehicle`).
 - `VehicleStatusHistory`, `Driver`, `DriverPerformanceRecord` (legajo histórico append-only), `Supplier`, `SupplierServiceOrder`.
 
 **Inventario**
@@ -76,7 +76,7 @@ Agrupado por dominio — campos representativos, no exhaustivos.
 - Cada posición recibida se normaliza y persiste en `PositionSnapshot` (copia durable, no solo proxy en vivo) — sostiene el requisito de historial auditable independiente de la retención propia de Traccar.
 - **Alertas nativas de Traccar** (desconexión, geocercas, exceso de velocidad si el dispositivo lo soporta) se traducen directo a `Alert`. **Movimiento no autorizado** requiere una capa de reglas propia: se dispara si hay movimiento con ignición encendida sin una `JornadaOperativa` activa para esa unidad/horario.
 - **Reconciliación offline**: se compara `recordedAt` (hora del dispositivo) vs `receivedAt` (ingesta); un gap grande marca `isBuffered = true`, preservando una línea de tiempo operativa precisa aun con cortes de señal/eléctricos, tal como exige el pliego.
-- El intervalo de monitoreo configurable por el cliente (`monitoringIntervalSeconds`) gobierna la cadencia de polling/umbral de alerta de desconexión; el control remoto real del intervalo en el hardware depende del modelo de dispositivo GPS que se termine adquiriendo (ver Riesgos).
+- El intervalo de monitoreo configurable por el cliente (`monitoringIntervalSeconds`) define el **umbral de alerta de desconexión** (un dispositivo se marca desconectado si no reporta por más de N veces su intervalo — ver `lib/jobs/evaluate-alert-rules.ts`). El polling de reconciliación corre a una cadencia fija (`POLL_INTERVAL_MS` en `scripts/worker.ts`), independiente de este valor. El control remoto real del intervalo de reporte del hardware (comando `positionPeriodic` de Traccar) depende del modelo de dispositivo GPS que se adquiera (ver Riesgos) y no está implementado en el MVP.
 
 ---
 
@@ -107,30 +107,41 @@ Agrupado por dominio — campos representativos, no exhaustivos.
 ```
 flotas/
   app/
-    (auth)/login/
-    (admin)/          -- flota, conductores, org, combustible, jornadas, incidentes, alertas, geocercas, reportes
+    (auth)/           -- login, recuperar, restablecer (recuperación de contraseña)
+    (admin)/          -- panel, flota, conductores, organigrama, usuarios, datos (catálogos),
+                          combustible, neumaticos, activos, jornadas, incidentes, ordenes,
+                          proveedores, alertas, geocercas, reportes
     (driver)/conductor/
     (supplier)/proveedor/
     (desk)/desk/
     mapa/
     api/               -- vehicles, drivers, org-units, fuel-loads, tires, jornadas, incidents,
-                          supplier-orders, alerts, geofences, report-definitions, desk-tickets,
-                          traccar/webhook, positions/[vehicleId], auth/[...nextauth]
+                          supplier-orders, alerts, geofences, report-definitions, report-runs,
+                          desk-tickets, traccar/webhook, positions/[vehicleId], positions/latest,
+                          positions/stream (SSE), auth/[...nextauth]
   lib/
     data/              -- repositorios con scope, ÚNICA capa que puede importar @prisma/client
-    auth/              -- auth.config.ts, session.ts (requireSession), scope.ts (buildOrgScopeWhere)
+    auth/              -- config.ts, session.ts (requireSession), scope.ts (buildOrgScopeWhere), index.ts
     traccar/           -- client.ts, websocket-connector.ts, normalize.ts
-    jobs/              -- pg-boss/graphile-worker: poll-traccar-positions, evaluate-alert-rules,
-                          reconcile-device-health, generate-report, send-alert-notifications
-    validation/        -- fuel-load-rules.ts
-    reports/           -- pdf-export.ts, xlsx-export.ts
-  prisma/schema.prisma, migrations/, seed.ts
-  components/          -- ui/, map/, fleet/, scheduling/, incidents/, reports/
-  docker-compose.yml   -- app-db postgres, traccar, traccar-db
+    catalogs/          -- registry.ts (valores y etiquetas por defecto de catálogos/enums)
+    jobs/              -- proceso worker (scripts/worker.ts) con WebSocket + setInterval:
+                          poll-traccar-positions, evaluate-alert-rules, generate-report,
+                          send-alert-notifications, raise-alert
+                          (una cola persistente tipo pg-boss/graphile-worker queda como
+                          hardening futuro; hoy son intervalos en memoria)
+    validation/        -- fuel-load-rules.ts, alert-rules.ts, geofence-geometry.ts,
+                          trip-planning.ts, inputs.ts (Zod), alert-rules, fuel-load-rules
+    reports/           -- definitions.ts, datasets.ts, pdf-export.ts, xlsx-export.ts, csv-export.ts
+    mailer.ts, storage.ts, format.ts
+  prisma/schema.prisma, migrations/, seed.ts (admin), seed-demo.ts (dataset completo)
+  components/          -- badges, sidebar, *-form, map/ (live-map, history-map)
+  scripts/worker.ts    -- proceso de background (telemetría/alertas/reportes)
+  tests/               -- unitarios (puros) + integration/ (scoping con DB de test)
+  docker-compose.yml   -- app-db postgres, traccar, traccar-db, migrate, app, worker
   middleware.ts
 ```
 
-Convenciones a fijar en Fase 0: regla de ESLint que prohíbe `@prisma/client` fuera de `lib/data/**` y `lib/jobs/**`; toda Route Handler/Server Action empieza con `requireSession()`; timestamps en UTC, mostrados en la zona horaria configurada.
+Convenciones a fijar en Fase 0: regla de ESLint que prohíbe `@prisma/client` fuera de `lib/data/**`, `lib/jobs/**`, `prisma/**` y `tests/integration/**` (seeds, migraciones y fixtures de test sí pueden usar el cliente crudo); toda Route Handler/Server Action empieza con `requireSession()`; timestamps en UTC, mostrados en la zona horaria configurada.
 
 ---
 
@@ -138,8 +149,8 @@ Convenciones a fijar en Fase 0: regla de ESLint que prohíbe `@prisma/client` fu
 
 - **Fase 0**: login funcional para cada rol, navegación con guard por rol funcionando, `docker compose up` levanta app + Postgres + Traccar sin errores.
 - **Cada fase siguiente**: probar el flujo end-to-end en navegador con al menos un usuario por rol relevante (ej. Fase 1: crear vehículo como ADMIN, verificar que un DRIVER no vea vehículos fuera de su asignación, verificar que el mapa en vivo reciba posiciones reales de un dispositivo Traccar de prueba).
-- Verificar específicamente que el scoping por rol funcione mediante pruebas manuales/automatizadas que confirmen que un usuario DRIVER o SUPPLIER no puede acceder a datos fuera de su alcance vía API directa (no solo ocultos en la UI).
-- Tests unitarios para `lib/data/*` (reglas de scoping) y `lib/validation/fuel-load-rules.ts` (detección de duplicados/anomalías) dado que son los puntos de mayor riesgo de negocio.
+- Verificar específicamente que el scoping por rol funcione mediante pruebas manuales/automatizadas que confirmen que un usuario DRIVER o SUPPLIER no puede acceder a datos fuera de su alcance vía la capa de datos (no solo ocultos en la UI). **Implementado**: `tests/integration/scope.integration.test.ts` golpea `lib/data` con la sesión de cada rol contra una base dedicada (`npm run test:integration`).
+- Tests unitarios de reglas puras (`lib/validation/*`: combustible, alertas, geocercas, planificación) y de `lib/auth/scope.ts` en `tests/*.test.ts` (`npm test`), más los de integración de scoping sobre `lib/data/*`, dado que son los puntos de mayor riesgo de negocio.
 
 ---
 

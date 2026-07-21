@@ -180,8 +180,30 @@ form.stack { display: flex; flex-direction: column; gap: 12px; max-width: 560px;
   padding: 8px 12px;
   font-size: 13px;
 }
+.alert-warn {
+  background: #f7ecd4;
+  color: var(--warning);
+  border: 1px solid #e5d0a3;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 13px;
+}
 
 .muted { color: var(--text-muted); font-size: 13px; }
+
+/* Etiqueta visible solo para lectores de pantalla: la usan las filas de edición
+   en línea, donde el encabezado de la columna ya dice qué es cada campo. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .mono { font-family: ui-monospace, monospace; font-size: 12px; }
 
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }

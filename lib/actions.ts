@@ -26,16 +26,26 @@ function appendQuery(path: string, key: string, value: string): string {
   return `${path}${sep}${key}=${encodeURIComponent(value)}`;
 }
 
+// Una mutación que terminó bien puede igual tener algo que avisar (p. ej. se
+// guardó local pero no se pudo replicar en Traccar): devolver { path, warning }
+// redirige al destino normal y muestra el aviso con ?warning=.
+export type FormActionResult = string | { path: string; warning?: string | null };
+
 // Ejecuta la mutación y redirige: al destino devuelto por fn en éxito, o de
 // vuelta a errorPath con ?error= en errores esperables (validación/permisos).
 export async function runFormAction(
   opts: { errorPath: string; revalidate?: string[] },
-  fn: () => Promise<string>,
+  fn: () => Promise<FormActionResult>,
 ): Promise<never> {
   let dest: string;
   try {
-    dest = await fn();
+    const result = await fn();
     for (const p of opts.revalidate ?? []) revalidatePath(p);
+    if (typeof result === "string") {
+      dest = result;
+    } else {
+      dest = result.warning ? appendQuery(result.path, "warning", result.warning) : result.path;
+    }
   } catch (err) {
     if (!(err instanceof ApiError) && !(err instanceof ZodError)) throw err;
     dest = appendQuery(opts.errorPath, "error", messageFrom(err));

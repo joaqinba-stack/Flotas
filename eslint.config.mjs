@@ -36,7 +36,10 @@ const eslintConfig = [
     },
   },
   {
-    files: ["lib/data/**", "lib/jobs/**", "prisma/**"],
+    // lib/data y lib/jobs son la capa autorizada a usar Prisma directamente;
+    // prisma/** son seeds/migraciones; tests/integration necesita un cliente
+    // crudo para montar y limpiar fixtures contra la base de test.
+    files: ["lib/data/**", "lib/jobs/**", "prisma/**", "tests/integration/**"],
     rules: {
       "no-restricted-imports": "off",
     },

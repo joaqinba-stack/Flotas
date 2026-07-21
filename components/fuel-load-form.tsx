@@ -1,4 +1,5 @@
 import { datetimeInputValue } from "@/lib/format";
+import type { CatalogOption } from "@/lib/data/catalogs";
 
 type VehicleOption = { id: string; plate: string; fuelType: string };
 type JornadaOption = { id: string; purpose: string; vehicle: { plate: string } };
@@ -7,11 +8,15 @@ export function FuelLoadForm({
   action,
   vehicles,
   jornadas,
+  fuelTypes,
+  stations,
   fixedVehicleId,
 }: {
   action: (formData: FormData) => Promise<void>;
   vehicles: VehicleOption[];
   jornadas: JornadaOption[];
+  fuelTypes: CatalogOption[];
+  stations: CatalogOption[];
   fixedVehicleId?: string;
 }) {
   return (
@@ -58,16 +63,20 @@ export function FuelLoadForm({
         <div className="field">
           <label htmlFor="fuelType">Combustible</label>
           <select id="fuelType" name="fuelType" defaultValue="DIESEL">
-            <option value="NAFTA">Nafta</option>
-            <option value="DIESEL">Diésel</option>
-            <option value="GNC">GNC</option>
-            <option value="ELECTRICO">Eléctrico</option>
+            {fuelTypes.map((f) => (
+              <option key={f.code} value={f.code}>{f.label}</option>
+            ))}
           </select>
         </div>
       </div>
       <div className="field">
         <label htmlFor="station">Estación / punto de carga</label>
-        <input id="station" name="station" placeholder="Opcional" />
+        <input id="station" name="station" list="station-options" placeholder="Opcional" />
+        <datalist id="station-options">
+          {stations.map((st) => (
+            <option key={st.code} value={st.code}>{st.label}</option>
+          ))}
+        </datalist>
       </div>
       <div>
         <button className="btn" type="submit">Registrar carga</button>

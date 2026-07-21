@@ -10,3 +10,6 @@ next-env.d.ts
 var/
 coverage/
 .DS_Store
+
+# Config local de herramientas (Claude Code)
+.claude/

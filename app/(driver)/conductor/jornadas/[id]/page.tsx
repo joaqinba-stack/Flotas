@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
 import { getJornada } from "@/lib/data/jornadas";
 import { JornadaDetail } from "@/components/jornada-detail";
+import { listManyCatalogs } from "@/lib/data/catalogs";
 import { IncidentForm } from "@/components/incident-form";
 import { createIncidentAction } from "@/app/(admin)/incidentes/actions";
 
@@ -14,7 +15,11 @@ export default async function MiJornadaPage({
 }) {
   const session = await requireSession(Role.DRIVER);
   const { id } = await params;
-  const [jornada, sp] = await Promise.all([getJornada(session, id), searchParams]);
+  const [jornada, sp, cat] = await Promise.all([
+    getJornada(session, id),
+    searchParams,
+    listManyCatalogs(["IncidentUrgency", "INCIDENT_CATEGORY"]),
+  ]);
   return (
     <div>
       {sp.error && <p className="alert-error">{sp.error}</p>}
@@ -31,6 +36,8 @@ export default async function MiJornadaPage({
             action={createIncidentAction.bind(null, `/conductor/jornadas/${id}`)}
             vehicles={[{ id: jornada.vehicle.id, plate: jornada.vehicle.plate }]}
             jornadas={[{ id: jornada.id, purpose: jornada.purpose, vehicle: { plate: jornada.vehicle.plate } }]}
+            urgencies={cat.IncidentUrgency}
+            categories={cat.INCIDENT_CATEGORY}
           />
         </div>
       )}

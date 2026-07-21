@@ -17,7 +17,7 @@ El software implementa **las 7 fases** del pliego. Mapa requisito → módulo:
 
 | Requisito del pliego | Dónde está implementado |
 |---|---|
-| Ámbitos delimitados por actor; cada interviniente accede solo a su competencia | `middleware.ts`, `lib/auth/scope.ts`, `lib/data/*` (repositorios con scope obligatorio; regla ESLint prohíbe importar Prisma fuera de esa capa) |
+| Ámbitos delimitados por actor; cada interviniente accede solo a su competencia | `middleware.ts`, `lib/auth/scope.ts`, `lib/data/*` (repositorios con scope obligatorio; regla ESLint prohíbe importar Prisma fuera de esa capa; `tests/integration/scope.integration.test.ts` lo verifica) |
 | Registros consolidados de flota: ubicación, disponibilidad, histórico trazable | `app/mapa`, `lib/data/positions.ts`, modelo `PositionSnapshot` |
 | Legajo operativo por unidad (identificación, asignación, estado) | `app/(admin)/flota`, `Vehicle` + `VehicleStatusHistory` |
 | Combustible: verificación previa, anomalías/duplicados, vínculo a unidad/responsable/actividad | `lib/validation/fuel-load-rules.ts`, `app/(admin)/combustible`, `FuelLoad.jornadaId` |
@@ -30,7 +30,7 @@ El software implementa **las 7 fases** del pliego. Mapa requisito → módulo:
 | Reportes por evento o período, personalizables | `app/(admin)/reportes`, `lib/reports/*` (PDF/XLSX/CSV) |
 | Alertas automáticas: exceso de velocidad, zonas, desconexión, traslado no autorizado | `lib/validation/alert-rules.ts`, `lib/jobs/evaluate-alert-rules.ts`, webhook de Traccar |
 | Registro no se interrumpe por falla eléctrica/sin señal (buffer offline reconciliado) | `lib/traccar/normalize.ts` (`isBuffered`), `lib/jobs/poll-traccar-positions.ts` |
-| Intervalo de supervisión configurable por el cliente | `TraccarDevice.monitoringIntervalSeconds` |
+| Umbral de supervisión configurable por el cliente (dispara alerta de desconexión) | `TraccarDevice.monitoringIntervalSeconds`, `lib/jobs/evaluate-alert-rules.ts` |
 | Alineación con el organigrama (divisiones, departamentos, bases logísticas) | `OrgUnit` con materialized path, `app/(admin)/organigrama` |
 | Mesa de asistencia operativa 24/7 | `app/(desk)`, `DeskTicket` + `DeskTicketNote` |
 | Autogestión total del personal del cliente | Principio transversal: toda acción administrativa está disponible en la UI |
@@ -39,6 +39,10 @@ El software implementa **las 7 fases** del pliego. Mapa requisito → módulo:
 
 - **Notificaciones de alerta (stub):** hoy se registran en `AlertNotificationLog` (no envían
   email/SMS reales). Suficiente para la demo; producción requiere conectar SMTP/SMS.
+- **Intervalo de reporte del GPS:** `monitoringIntervalSeconds` define el **umbral de alerta de
+  desconexión**, no la cadencia de reporte del hardware. Reconfigurar remotamente cada cuánto
+  reporta el equipo (comando `positionPeriodic` de Traccar) depende del modelo de GPS y no está
+  implementado en el MVP.
 - **Secretos:** `AUTH_SECRET`, `TRACCAR_WEBHOOK_SECRET`, `SEED_PASSWORD` y la contraseña de Traccar
   vienen con valores de ejemplo. **Regenerarlos antes de exponer el VPS a Internet.**
 - **Canal de voz de la mesa 24/7:** hoy un agente humano carga los tickets manualmente; integración
@@ -47,26 +51,37 @@ El software implementa **las 7 fases** del pliego. Mapa requisito → módulo:
 
 ---
 
-## 2. Instalar en un VPS (demo)
+## 2. Instalar en un VPS
 
 Requisitos del VPS: Linux con **Docker** y **Docker Compose v2**. 2 vCPU / 4 GB RAM alcanzan.
 
 ```bash
-git clone <URL_DEL_REPO> flotas
-cd flotas
-git checkout claude/github-software-demo-readiness-3yh982
+git clone https://github.com/joaqinba-stack/Flotas.git flotas
+cd flotas          # rama por defecto: main
 
 cp .env.example .env
 # Editar .env y como mínimo cambiar:
 #   AUTH_SECRET            -> openssl rand -base64 32
 #   TRACCAR_WEBHOOK_SECRET -> un valor propio (y reflejarlo en docker/traccar/traccar.xml)
-#   SEED_PASSWORD          -> la contraseña con la que entrarán los usuarios de demo
+#   SEED_PASSWORD          -> la contraseña con la que entrarán los usuarios
+#   TRACCAR_PASSWORD       -> la contraseña de la cuenta de servicio de Traccar
 
 docker compose up -d --build
 ```
 
 `docker compose up` levanta todo en orden: Postgres, Traccar, corre migraciones + seed
 (servicio `migrate`), luego la app (`:3000`) y el worker de background.
+
+El servicio `migrate` corre `npm run db:seed`, que crea **solo la cuenta de administración**
+(`admin@flotas.local`). El sistema arranca vacío: el organigrama, la flota, los conductores y
+todo lo demás se cargan desde la propia aplicación (autogestión). Ese es el estado correcto para
+producción.
+
+**Para una demo poblada** (dataset completo con todos los módulos cargados), corré además:
+
+```bash
+docker compose exec app npm run db:seed:demo
+```
 
 Comprobar que quedó arriba:
 
@@ -82,6 +97,7 @@ docker compose logs -f app # ver arranque de Next.js
 | `3000/tcp` | Aplicación web |
 | `8082/tcp` | Consola web de Traccar (opcional, para verificar dispositivos) |
 | `5055/tcp` | Recepción de posiciones GPS desde el celular (app Traccar Client) |
+| `5023/tcp` · `5013/tcp` | Protocolos de trackers cableados (teltonika / h02); abrir según hardware |
 
 > Nota: si cambiás `TRACCAR_WEBHOOK_SECRET` en `.env`, actualizá el mismo valor en
 > `docker/traccar/traccar.xml` (`event.forward.header`) y reiniciá: `docker compose restart traccar`.
@@ -90,12 +106,17 @@ docker compose logs -f app # ver arranque de Next.js
 
 ## 3. Acceder al software
 
-Ir a `http://IP_DEL_VPS:3000`. Usuarios de demo (contraseña = el valor de `SEED_PASSWORD`):
+Ir a `http://IP_DEL_VPS:3000`.
+
+- **Instalación limpia:** entrá con `admin@flotas.local` (contraseña = `SEED_PASSWORD`) y cargá el
+  organigrama, la flota y los usuarios desde la UI.
+- **Demo poblada** (si corriste `npm run db:seed:demo`): hay un usuario por rol
+  (contraseña = `SEED_PASSWORD`):
 
 | Rol | Email | Qué ve |
 |---|---|---|
 | Administración | `admin@flotas.local` | Todo el sistema, sin filtro |
-| Supervisor | `supervisor@flotas.local` | Su rama del organigrama |
+| Supervisor | `supervisor@flotas.local` | Su rama del organigrama (Depto. de Operaciones) |
 | Conductor | `chofer@flotas.local` | Solo sus jornadas, legajo y cargas |
 | Proveedor | `proveedor@flotas.local` | Solo sus órdenes de servicio |
 | Mesa 24/7 | `mesa@flotas.local` | Tickets, planificación, alertas |
@@ -115,7 +136,7 @@ Usar la app gratuita **Traccar Client** (Android / iOS) en un teléfono dentro d
 1. Instalar **Traccar Client** desde la tienda de apps.
 2. En la app configurar:
    - **Server URL:** `http://IP_DEL_VPS:5055`
-   - **Device identifier:** el `uniqueId` del dispositivo del vehículo. El seed ya trae uno
+   - **Device identifier:** el `uniqueId` del dispositivo del vehículo. El seed demo trae uno
      (`356938035643809`) ligado a la unidad **AB123CD**. También podés dar de alta uno nuevo desde
      la web en *Flota → (vehículo) → Dispositivo* y usar ese identificador.
    - **Frequency:** p. ej. 30 s.
@@ -123,9 +144,10 @@ Usar la app gratuita **Traccar Client** (Android / iOS) en un teléfono dentro d
    ingiere las posiciones y aparecen en **Mapa** (se refresca cada 5 s) y el dispositivo pasa a
    **ONLINE**. Mover el celular = mover la unidad en el mapa.
 
-> El seed provisiona el dispositivo en Traccar automáticamente (el worker lo sincroniza). Si Traccar
-> no lo reconoce, verificá que el **Device identifier** del celular sea exactamente el `uniqueId`
-> registrado en la web.
+> El dispositivo del seed demo se registra en la app con `traccarId` null; el worker lo sincroniza
+> con Traccar en el primer ciclo de polling. Si Traccar no lo reconoce, verificá que el **Device
+> identifier** del celular sea exactamente el `uniqueId` registrado en la web. El detalle del
+> vehículo muestra el estado de sincronización (Sincronizado / Sin sincronizar).
 
 ### En producción: trackers GPS cableados
 
@@ -144,9 +166,26 @@ para operar sin señal.
 cp .env.example .env
 docker compose up -d app-db traccar traccar-db   # solo la infraestructura
 npm ci
-npx prisma migrate deploy && npm run db:seed
-npm run dev        # app en http://localhost:3000
-npm run worker     # en otra terminal: worker de telemetría/alertas/reportes
+npx prisma migrate deploy
+npm run db:seed         # solo admin (producción)
+npm run db:seed:demo    # opcional: dataset completo para probar todos los módulos
+npm run dev             # app en http://localhost:3000
+npm run worker          # en otra terminal: worker de telemetría/alertas/reportes
 ```
 
-Calidad (lo que corre CI): `npm run lint && npm run typecheck && npm test && npx next build`.
+### Calidad
+
+Lo que corre CI (puro, sin base de datos):
+
+```bash
+npm run lint && npm run typecheck && npm test && npx next build
+```
+
+Tests de integración de scoping por rol (requieren una base de datos dedicada; ver
+`tests/integration/README.md`):
+
+```bash
+docker exec -i flotas-app-db-1 psql -U flotas -d flotas -c "CREATE DATABASE flotas_test;"
+DATABASE_URL="postgresql://flotas:flotas@localhost:5432/flotas_test" npx prisma migrate deploy
+npm run test:integration
+```

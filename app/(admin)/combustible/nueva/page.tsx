@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/auth/session";
 import { Role, JornadaStatus } from "@/lib/data/types";
 import { listVehicles } from "@/lib/data/vehicles";
 import { listJornadas } from "@/lib/data/jornadas";
+import { listManyCatalogs } from "@/lib/data/catalogs";
 import { FuelLoadForm } from "@/components/fuel-load-form";
 import { createFuelLoadAction } from "../actions";
 
@@ -17,6 +18,7 @@ export default async function NuevaCargaPage({
     listJornadas(session, { status: JornadaStatus.IN_PROGRESS }),
     searchParams,
   ]);
+  const cat = await listManyCatalogs(["FuelType", "FUEL_STATION"]);
   return (
     <div>
       <h1>Registrar carga de combustible</h1>
@@ -26,6 +28,8 @@ export default async function NuevaCargaPage({
           action={createFuelLoadAction}
           vehicles={vehicles}
           jornadas={[...inProgress, ...planned]}
+          fuelTypes={cat.FuelType}
+          stations={cat.FUEL_STATION}
         />
       </div>
     </div>

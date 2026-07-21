@@ -1,12 +1,20 @@
+import Link from "next/link";
 import type { OrgUnit, Vehicle } from "@/lib/data/types";
+import type { CatalogOption } from "@/lib/data/catalogs";
 
 export function VehicleForm({
   action,
   orgUnits,
+  fuelTypes,
+  brands,
+  types,
   vehicle,
 }: {
   action: (formData: FormData) => Promise<void>;
   orgUnits: Array<Pick<OrgUnit, "id" | "name" | "path">>;
+  fuelTypes: CatalogOption[];
+  brands: CatalogOption[];
+  types: CatalogOption[];
   vehicle?: Vehicle | null;
 }) {
   return (
@@ -24,7 +32,12 @@ export function VehicleForm({
       <div className="form-row">
         <div className="field">
           <label htmlFor="brand">Marca</label>
-          <input id="brand" name="brand" required defaultValue={vehicle?.brand ?? ""} />
+          <input id="brand" name="brand" list="brand-options" required defaultValue={vehicle?.brand ?? ""} />
+          <datalist id="brand-options">
+            {brands.map((b) => (
+              <option key={b.code} value={b.code}>{b.label}</option>
+            ))}
+          </datalist>
         </div>
         <div className="field">
           <label htmlFor="model">Modelo</label>
@@ -34,15 +47,19 @@ export function VehicleForm({
       <div className="form-row">
         <div className="field">
           <label htmlFor="type">Tipo de unidad</label>
-          <input id="type" name="type" required placeholder="Utilitario, camión, sedán…" defaultValue={vehicle?.type ?? ""} />
+          <input id="type" name="type" list="type-options" required placeholder="Utilitario, camión, sedán…" defaultValue={vehicle?.type ?? ""} />
+          <datalist id="type-options">
+            {types.map((t) => (
+              <option key={t.code} value={t.code}>{t.label}</option>
+            ))}
+          </datalist>
         </div>
         <div className="field">
           <label htmlFor="fuelType">Combustible</label>
           <select id="fuelType" name="fuelType" defaultValue={vehicle?.fuelType ?? "NAFTA"}>
-            <option value="NAFTA">Nafta</option>
-            <option value="DIESEL">Diésel</option>
-            <option value="GNC">GNC</option>
-            <option value="ELECTRICO">Eléctrico</option>
+            {fuelTypes.map((f) => (
+              <option key={f.code} value={f.code}>{f.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -58,7 +75,13 @@ export function VehicleForm({
       </div>
       <div className="field">
         <label htmlFor="orgUnitId">Unidad organizacional</label>
-        <select id="orgUnitId" name="orgUnitId" required defaultValue={vehicle?.orgUnitId ?? ""}>
+        <select
+          id="orgUnitId"
+          name="orgUnitId"
+          required
+          defaultValue={vehicle?.orgUnitId ?? ""}
+          disabled={orgUnits.length === 0}
+        >
           <option value="" disabled>Seleccionar…</option>
           {orgUnits.map((u) => (
             <option key={u.id} value={u.id}>
@@ -66,6 +89,11 @@ export function VehicleForm({
             </option>
           ))}
         </select>
+        {orgUnits.length === 0 && (
+          <small className="muted">
+            No hay unidades cargadas. Creá la primera en <Link href="/organigrama">Organigrama</Link>.
+          </small>
+        )}
       </div>
       <div>
         <button className="btn" type="submit">{vehicle ? "Guardar cambios" : "Crear vehículo"}</button>

@@ -16,22 +16,22 @@ enum Role {
 }
 
 model OrgUnit {
-  id        String    @id @default(cuid())
+  id        String             @id @default(cuid())
   name      String
   kind      OrgUnitKind
   // Materialized path de ids con separador "/" y barra final: "/<rootId>/<childId>/".
   // El scoping por jerarquía es `path startsWith <path del viewer>`.
-  path      String    @unique
+  path      String             @unique
   parentId  String?
-  parent    OrgUnit?  @relation("OrgTree", fields: [parentId], references: [id])
-  children  OrgUnit[] @relation("OrgTree")
+  parent    OrgUnit?           @relation("OrgTree", fields: [parentId], references: [id])
+  children  OrgUnit[]          @relation("OrgTree")
   users     User[]
   drivers   Driver[]
   vehicles  Vehicle[]
   jornadas  JornadaOperativa[]
   geofences Geofence[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 
   @@index([parentId])
   @@index([path])
@@ -44,45 +44,45 @@ enum OrgUnitKind {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String
-  passwordHash String
-  role         Role
-  active       Boolean   @default(true)
-  orgUnitId    String?
-  orgUnit      OrgUnit?  @relation(fields: [orgUnitId], references: [id])
-  driverId     String?   @unique
-  driver       Driver?   @relation(fields: [driverId], references: [id])
-  supplierId   String?
-  supplier     Supplier? @relation(fields: [supplierId], references: [id])
-  vehicleStatusChanges VehicleStatusHistory[]
-  jornadasCreated      JornadaOperativa[]       @relation("JornadaCreatedBy")
-  fuelLoadsCreated     FuelLoad[]               @relation("FuelCreatedBy")
-  fuelLoadsReviewed    FuelLoad[]               @relation("FuelReviewedBy")
-  tireMovements        TireMovement[]
-  auxAssetMovements    AuxiliaryAssetMovement[]
-  viaticosApproved     Viatico[]                @relation("ViaticoApprovedBy")
-  viaticosCreated      Viatico[]                @relation("ViaticoCreatedBy")
-  permitsApproved      Permit[]                 @relation("PermitApprovedBy")
-  permitsRequested     Permit[]                 @relation("PermitRequestedBy")
-  novedadesReported    Novedad[]
-  performanceRecorded  DriverPerformanceRecord[]
-  incidentsReported    Incident[]               @relation("IncidentReportedBy")
-  incidentNotes        IncidentNote[]
-  incidentAttachments  IncidentAttachment[]
-  serviceOrdersCreated SupplierServiceOrder[]
-  serviceOrderNotes    SupplierServiceOrderNote[]
-  geofencesCreated     Geofence[]                 @relation("GeofenceCreatedBy")
-  alertsAcknowledged   Alert[]                    @relation("AlertAcknowledgedBy")
-  reportDefinitionsCreated ReportDefinition[]      @relation("ReportDefinitionCreatedBy")
-  reportRunsRequested  ReportRun[]                @relation("ReportRunRequestedBy")
-  deskTicketsAssigned  DeskTicket[]               @relation("DeskTicketAssignedTo")
-  deskTicketsCreated   DeskTicket[]               @relation("DeskTicketCreatedBy")
-  deskTicketNotes      DeskTicketNote[]
-  passwordResetTokens  PasswordResetToken[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                       String                     @id @default(cuid())
+  email                    String                     @unique
+  name                     String
+  passwordHash             String
+  role                     Role
+  active                   Boolean                    @default(true)
+  orgUnitId                String?
+  orgUnit                  OrgUnit?                   @relation(fields: [orgUnitId], references: [id])
+  driverId                 String?                    @unique
+  driver                   Driver?                    @relation(fields: [driverId], references: [id])
+  supplierId               String?
+  supplier                 Supplier?                  @relation(fields: [supplierId], references: [id])
+  vehicleStatusChanges     VehicleStatusHistory[]
+  jornadasCreated          JornadaOperativa[]         @relation("JornadaCreatedBy")
+  fuelLoadsCreated         FuelLoad[]                 @relation("FuelCreatedBy")
+  fuelLoadsReviewed        FuelLoad[]                 @relation("FuelReviewedBy")
+  tireMovements            TireMovement[]
+  auxAssetMovements        AuxiliaryAssetMovement[]
+  viaticosApproved         Viatico[]                  @relation("ViaticoApprovedBy")
+  viaticosCreated          Viatico[]                  @relation("ViaticoCreatedBy")
+  permitsApproved          Permit[]                   @relation("PermitApprovedBy")
+  permitsRequested         Permit[]                   @relation("PermitRequestedBy")
+  novedadesReported        Novedad[]
+  performanceRecorded      DriverPerformanceRecord[]
+  incidentsReported        Incident[]                 @relation("IncidentReportedBy")
+  incidentNotes            IncidentNote[]
+  incidentAttachments      IncidentAttachment[]
+  serviceOrdersCreated     SupplierServiceOrder[]
+  serviceOrderNotes        SupplierServiceOrderNote[]
+  geofencesCreated         Geofence[]                 @relation("GeofenceCreatedBy")
+  alertsAcknowledged       Alert[]                    @relation("AlertAcknowledgedBy")
+  reportDefinitionsCreated ReportDefinition[]         @relation("ReportDefinitionCreatedBy")
+  reportRunsRequested      ReportRun[]                @relation("ReportRunRequestedBy")
+  deskTicketsAssigned      DeskTicket[]               @relation("DeskTicketAssignedTo")
+  deskTicketsCreated       DeskTicket[]               @relation("DeskTicketCreatedBy")
+  deskTicketNotes          DeskTicketNote[]
+  passwordResetTokens      PasswordResetToken[]
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
 }
 
 // Tokens de recuperación de contraseña. Se guarda solo el hash SHA-256 del
@@ -106,27 +106,27 @@ enum DriverStatus {
 }
 
 model Driver {
-  id              String       @id @default(cuid())
-  firstName       String
-  lastName        String
-  documentId      String       @unique
-  licenseNumber   String
-  licenseCategory String
-  licenseExpiry   DateTime
-  phone           String?
-  status          DriverStatus @default(ACTIVE)
-  orgUnitId       String
-  orgUnit         OrgUnit      @relation(fields: [orgUnitId], references: [id])
-  user            User?
-  assignedVehicles Vehicle[]   @relation("VehicleCurrentDriver")
-  jornadas        JornadaOperativa[]
-  fuelLoads       FuelLoad[]
-  viaticos        Viatico[]
-  permits         Permit[]
+  id                 String                    @id @default(cuid())
+  firstName          String
+  lastName           String
+  documentId         String                    @unique
+  licenseNumber      String
+  licenseCategory    String
+  licenseExpiry      DateTime
+  phone              String?
+  status             DriverStatus              @default(ACTIVE)
+  orgUnitId          String
+  orgUnit            OrgUnit                   @relation(fields: [orgUnitId], references: [id])
+  user               User?
+  assignedVehicles   Vehicle[]                 @relation("VehicleCurrentDriver")
+  jornadas           JornadaOperativa[]
+  fuelLoads          FuelLoad[]
+  viaticos           Viatico[]
+  permits            Permit[]
   performanceRecords DriverPerformanceRecord[]
-  incidents       Incident[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  incidents          Incident[]
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
 
   @@index([orgUnitId])
 }
@@ -145,20 +145,20 @@ enum FuelType {
 }
 
 model Vehicle {
-  id                 String                 @id @default(cuid())
-  plate              String                 @unique
+  id                 String                   @id @default(cuid())
+  plate              String                   @unique
   brand              String
   model              String
   year               Int
   type               String
   fuelType           FuelType
-  tankCapacityLiters Decimal?               @db.Decimal(6, 1)
-  odometerKm         Int                    @default(0)
-  status             VehicleStatus          @default(ACTIVE)
+  tankCapacityLiters Decimal?                 @db.Decimal(6, 1)
+  odometerKm         Int                      @default(0)
+  status             VehicleStatus            @default(ACTIVE)
   orgUnitId          String
-  orgUnit            OrgUnit                @relation(fields: [orgUnitId], references: [id])
+  orgUnit            OrgUnit                  @relation(fields: [orgUnitId], references: [id])
   currentDriverId    String?
-  currentDriver      Driver?                @relation("VehicleCurrentDriver", fields: [currentDriverId], references: [id])
+  currentDriver      Driver?                  @relation("VehicleCurrentDriver", fields: [currentDriverId], references: [id])
   traccarDevice      TraccarDevice?
   statusHistory      VehicleStatusHistory[]
   positions          PositionSnapshot[]
@@ -172,8 +172,8 @@ model Vehicle {
   serviceOrders      SupplierServiceOrder[]
   alerts             Alert[]
   deskTickets        DeskTicket[]
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
   @@index([orgUnitId])
   @@index([currentDriverId])
@@ -224,33 +224,33 @@ enum JornadaStatus {
 // Columna vertebral de trazabilidad: FuelLoad, Incident, Viatico, Permit y
 // Novedad enlazan acá para reconstruir el ciclo completo de cada operación.
 model JornadaOperativa {
-  id              String        @id @default(cuid())
-  vehicleId       String
-  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id])
-  driverId        String
-  driver          Driver        @relation(fields: [driverId], references: [id])
-  orgUnitId       String
-  orgUnit         OrgUnit       @relation(fields: [orgUnitId], references: [id])
-  purpose         String
-  plannedStart    DateTime
-  plannedEnd      DateTime
-  actualStart     DateTime?
-  actualEnd       DateTime?
-  startOdometerKm Int?
-  endOdometerKm   Int?
-  status          JornadaStatus @default(PLANNED)
-  notes           String?
-  fuelLoads       FuelLoad[]
-  viaticos        Viatico[]
-  permits         Permit[]
-  novedades       Novedad[]
+  id                 String                    @id @default(cuid())
+  vehicleId          String
+  vehicle            Vehicle                   @relation(fields: [vehicleId], references: [id])
+  driverId           String
+  driver             Driver                    @relation(fields: [driverId], references: [id])
+  orgUnitId          String
+  orgUnit            OrgUnit                   @relation(fields: [orgUnitId], references: [id])
+  purpose            String
+  plannedStart       DateTime
+  plannedEnd         DateTime
+  actualStart        DateTime?
+  actualEnd          DateTime?
+  startOdometerKm    Int?
+  endOdometerKm      Int?
+  status             JornadaStatus             @default(PLANNED)
+  notes              String?
+  fuelLoads          FuelLoad[]
+  viaticos           Viatico[]
+  permits            Permit[]
+  novedades          Novedad[]
   performanceRecords DriverPerformanceRecord[]
-  incidents       Incident[]
-  deskTickets     DeskTicket[]
-  createdById     String
-  createdBy       User          @relation("JornadaCreatedBy", fields: [createdById], references: [id])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  incidents          Incident[]
+  deskTickets        DeskTicket[]
+  createdById        String
+  createdBy          User                      @relation("JornadaCreatedBy", fields: [createdById], references: [id])
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
 
   @@index([vehicleId, plannedStart])
   @@index([driverId, plannedStart])
@@ -619,18 +619,18 @@ model PositionSnapshot {
 }
 
 model Supplier {
-  id            String  @id @default(cuid())
+  id            String                 @id @default(cuid())
   name          String
-  taxId         String  @unique
+  taxId         String                 @unique
   serviceTypes  String
   contactName   String?
   contactEmail  String?
   contactPhone  String?
-  active        Boolean @default(true)
+  active        Boolean                @default(true)
   users         User[]
   serviceOrders SupplierServiceOrder[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 }
 
 model Geofence {
@@ -672,23 +672,23 @@ enum AlertStatus {
 }
 
 model Alert {
-  id             String              @id @default(cuid())
-  type           AlertType
-  severity       AlertSeverity
-  status         AlertStatus         @default(NEW)
-  vehicleId      String
-  vehicle        Vehicle             @relation(fields: [vehicleId], references: [id])
-  geofenceId     String?
-  geofence       Geofence?           @relation(fields: [geofenceId], references: [id])
-  positionId     String?
-  message        String
-  details        Json?
-  occurredAt     DateTime
+  id               String                 @id @default(cuid())
+  type             AlertType
+  severity         AlertSeverity
+  status           AlertStatus            @default(NEW)
+  vehicleId        String
+  vehicle          Vehicle                @relation(fields: [vehicleId], references: [id])
+  geofenceId       String?
+  geofence         Geofence?              @relation(fields: [geofenceId], references: [id])
+  positionId       String?
+  message          String
+  details          Json?
+  occurredAt       DateTime
   acknowledgedById String?
-  acknowledgedBy User?               @relation("AlertAcknowledgedBy", fields: [acknowledgedById], references: [id])
-  acknowledgedAt DateTime?
-  notifications  AlertNotificationLog[]
-  createdAt      DateTime            @default(now())
+  acknowledgedBy   User?                  @relation("AlertAcknowledgedBy", fields: [acknowledgedById], references: [id])
+  acknowledgedAt   DateTime?
+  notifications    AlertNotificationLog[]
+  createdAt        DateTime               @default(now())
 
   @@index([vehicleId, occurredAt])
   @@index([status])
@@ -731,7 +731,7 @@ enum ReportDataset {
 }
 
 model ReportDefinition {
-  id          String         @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
   description String?
   dataset     ReportDataset
@@ -740,10 +740,10 @@ model ReportDefinition {
   columns     Json
   filters     Json
   createdById String
-  createdBy   User           @relation("ReportDefinitionCreatedBy", fields: [createdById], references: [id])
+  createdBy   User          @relation("ReportDefinitionCreatedBy", fields: [createdById], references: [id])
   runs        ReportRun[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@index([createdById])
 }
@@ -835,4 +835,27 @@ model DeskTicketNote {
   createdAt DateTime   @default(now())
 
   @@index([ticketId, createdAt])
+}
+
+// Catálogo editable desde Administración → Datos.
+//
+// Cubre dos casos con una sola tabla:
+//  - Catálogos libres (categorías de licencia, marcas, tipos de incidente):
+//    el ABM completo vive acá, `system` = false.
+//  - Enums de Prisma (DriverStatus, FuelType…): el valor sigue siendo el enum
+//    y la única columna editable es `label`. Se guarda solo el override; los
+//    valores y las etiquetas por defecto viven en lib/catalogs/registry.ts, así
+//    que un catálogo sin filas sigue funcionando.
+model CatalogItem {
+  id        String   @id @default(cuid())
+  catalog   String
+  code      String
+  label     String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([catalog, code])
+  @@index([catalog, active, sortOrder])
 }

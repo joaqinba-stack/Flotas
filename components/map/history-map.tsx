@@ -27,7 +27,8 @@ export function HistoryMap({ points }: { points: HistoryPoint[] }) {
       }).addTo(map);
 
       if (points.length === 0) {
-        map.setView([-34.6037, -58.3816], 11);
+        // Asunción, Paraguay
+        map.setView([-25.2637, -57.5759], 11);
         return;
       }
       const latlngs = points.map((p) => [p.latitude, p.longitude] as [number, number]);

@@ -1,4 +1,5 @@
 import { datetimeInputValue } from "@/lib/format";
+import type { CatalogOption } from "@/lib/data/catalogs";
 
 type VehicleOption = { id: string; plate: string };
 type JornadaOption = { id: string; purpose: string; vehicle: { plate: string } };
@@ -7,10 +8,14 @@ export function IncidentForm({
   action,
   vehicles,
   jornadas,
+  urgencies,
+  categories,
 }: {
   action: (formData: FormData) => Promise<void>;
   vehicles: VehicleOption[];
   jornadas: JornadaOption[];
+  urgencies: CatalogOption[];
+  categories: CatalogOption[];
 }) {
   return (
     <form className="stack" action={action}>
@@ -45,15 +50,19 @@ export function IncidentForm({
       <div className="form-row">
         <div className="field">
           <label htmlFor="category">Categoría</label>
-          <input id="category" name="category" required placeholder="Mecánica, choque, robo…" />
+          <input id="category" name="category" list="category-options" required placeholder="Mecánica, choque, robo…" />
+          <datalist id="category-options">
+            {categories.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </datalist>
         </div>
         <div className="field">
           <label htmlFor="urgency">Urgencia</label>
           <select id="urgency" name="urgency" defaultValue="MEDIUM">
-            <option value="LOW">Baja</option>
-            <option value="MEDIUM">Media</option>
-            <option value="HIGH">Alta</option>
-            <option value="CRITICAL">Crítica</option>
+            {urgencies.map((u) => (
+              <option key={u.code} value={u.code}>{u.label}</option>
+            ))}
           </select>
         </div>
         <div className="field">

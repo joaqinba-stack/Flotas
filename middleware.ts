@@ -10,6 +10,7 @@ const PUBLIC_PATHS = ["/recuperar", "/restablecer"];
 
 const ROUTE_ROLES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/usuarios", roles: ["ADMIN"] },
+  { prefix: "/datos", roles: ["ADMIN"] },
   { prefix: "/panel", roles: ["ADMIN", "SUPERVISOR"] },
   { prefix: "/flota", roles: ["ADMIN", "SUPERVISOR"] },
   { prefix: "/conductores", roles: ["ADMIN", "SUPERVISOR"] },

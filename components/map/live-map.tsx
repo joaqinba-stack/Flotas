@@ -19,7 +19,8 @@ type LivePosition = {
   };
 };
 
-const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816];
+// Asunción, Paraguay
+const DEFAULT_CENTER: [number, number] = [-25.2637, -57.5759];
 
 export function LiveMap() {
   const containerRef = useRef<HTMLDivElement>(null);

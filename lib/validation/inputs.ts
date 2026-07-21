@@ -299,3 +299,24 @@ export const passwordResetSchema = z
     path: ["confirm"],
     message: "Las contraseñas no coinciden",
   });
+
+// Catálogos (Administración → Datos). El código es el valor que queda guardado
+// en la base, así que se normaliza a mayúsculas sin espacios: cambiarlo después
+// obligaría a reescribir los registros que lo usan.
+export const catalogItemCreateSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .max(40)
+    .regex(/^[A-Za-z0-9_-]+$/, "Solo letras, números, guion y guion bajo")
+    .transform((s) => s.toUpperCase()),
+  label: z.string().trim().min(1).max(80),
+  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+});
+
+export const catalogItemSaveSchema = z.object({
+  label: z.string().trim().min(1).max(80),
+  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+  active: z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
+});

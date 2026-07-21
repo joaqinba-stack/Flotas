@@ -3,6 +3,7 @@ import { Role, JornadaStatus } from "@/lib/data/types";
 import { listFuelLoads } from "@/lib/data/fuel-loads";
 import { listVehicles } from "@/lib/data/vehicles";
 import { listJornadas } from "@/lib/data/jornadas";
+import { listManyCatalogs } from "@/lib/data/catalogs";
 import { FuelLoadForm } from "@/components/fuel-load-form";
 import { StatusBadge } from "@/components/badges";
 import { fmtDateTime, fmtNumber } from "@/lib/format";
@@ -21,6 +22,7 @@ export default async function MisCargasPage({
     listJornadas(session, { status: JornadaStatus.IN_PROGRESS }),
     searchParams,
   ]);
+  const cat = await listManyCatalogs(["FuelType", "FUEL_STATION"]);
 
   return (
     <div>
@@ -36,6 +38,8 @@ export default async function MisCargasPage({
             action={createOwnFuelLoadAction}
             vehicles={vehicles}
             jornadas={[...inProgress, ...planned]}
+            fuelTypes={cat.FuelType}
+            stations={cat.FUEL_STATION}
             fixedVehicleId={vehicles[0].id}
           />
         )}

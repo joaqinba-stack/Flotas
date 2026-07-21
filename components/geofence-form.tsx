@@ -38,7 +38,7 @@ export function GeofenceForm({
           rows={4}
           required
           className="mono"
-          placeholder="[[-34.60,-58.38],[-34.61,-58.38],[-34.61,-58.37]]"
+          placeholder="[[-25.26,-57.58],[-25.27,-57.58],[-25.27,-57.57]]"
           defaultValue={geofence ? JSON.stringify(geofence.polygon) : ""}
         />
       </div>

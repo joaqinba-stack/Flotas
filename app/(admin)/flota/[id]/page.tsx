@@ -18,7 +18,7 @@ export default async function VehiculoDetallePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; warning?: string }>;
 }) {
   const session = await requireSession(Role.SUPERVISOR);
   const { id } = await params;
@@ -41,6 +41,7 @@ export default async function VehiculoDetallePage({
         </div>
       </div>
       {sp.error && <p className="alert-error">{sp.error}</p>}
+      {sp.warning && <p className="alert-warn">{sp.warning}</p>}
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Legajo operativo</h2>
@@ -108,9 +109,19 @@ export default async function VehiculoDetallePage({
               <div><dt>Última señal</dt><dd>{fmtDateTime(device.lastSeenAt)}</dd></div>
               <div>
                 <dt>Sync con Traccar</dt>
-                <dd>{device.traccarId !== null ? `OK (id ${device.traccarId})` : "Pendiente"}</dd>
+                <dd>
+                  <StatusBadge value={device.traccarId !== null ? "SYNC_OK" : "SYNC_PENDING"} />
+                  {device.traccarId !== null && <span className="muted"> id {device.traccarId}</span>}
+                </dd>
               </div>
             </dl>
+            {device.traccarId === null && (
+              <p className="alert-warn">
+                Este equipo existe solo en la app: nunca se dio de alta en Traccar, así que no va a
+                recibir posiciones. El worker (<code>npm run worker</code>) lo reintenta en cada ciclo
+                de polling; si no está corriendo, no se va a sincronizar solo.
+              </p>
+            )}
             <form className="filter-bar" action={updateDeviceAction.bind(null, id, device.id)}>
               <div className="field">
                 <label htmlFor="name">Nombre</label>

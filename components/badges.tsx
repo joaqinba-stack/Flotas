@@ -54,6 +54,9 @@ const STYLES: Record<string, { label: string; tone: string }> = {
   GEOFENCE_EXIT: { label: "Salida de geocerca", tone: "blue" },
   DEVICE_DISCONNECTED: { label: "Dispositivo desconectado", tone: "red" },
   UNAUTHORIZED_MOVEMENT: { label: "Movimiento no autorizado", tone: "red" },
+  // Sincronización de dispositivos con Traccar
+  SYNC_OK: { label: "Sincronizado", tone: "green" },
+  SYNC_PENDING: { label: "Sin sincronizar", tone: "yellow" },
   // Reportes
   QUEUED: { label: "En cola", tone: "blue" },
   RUNNING: { label: "Generando", tone: "yellow" },

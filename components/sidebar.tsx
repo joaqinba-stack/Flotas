@@ -47,7 +47,10 @@ const ADMIN_NAV: NavSection[] = [
 // Solo visible para ADMIN (el middleware bloquea /usuarios para el resto).
 const ADMIN_ONLY_SECTION: NavSection = {
   title: "Administración",
-  links: [{ href: "/usuarios", label: "Usuarios" }],
+  links: [
+    { href: "/usuarios", label: "Usuarios" },
+    { href: "/datos", label: "Datos" },
+  ],
 };
 
 const DRIVER_NAV: NavSection[] = [
