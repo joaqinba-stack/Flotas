@@ -1,5 +1,6 @@
 import { AlertSeverity, AlertType, DeviceConnectionStatus } from "@/lib/data/types";
 import { systemFindByTraccarId, systemSetConnectionStatus } from "@/lib/data/traccar-devices";
+import { systemFindDriverByTraccarId, systemSetDriverConnectionStatus } from "@/lib/data/driver-devices";
 import { raiseAlert } from "@/lib/jobs/raise-alert";
 
 type TraccarWebhookEvent = {
@@ -27,7 +28,19 @@ export async function POST(req: Request) {
   const event: TraccarWebhookEvent = await req.json();
   const device = await systemFindByTraccarId(event.deviceId);
   if (!device) {
-    return new Response(JSON.stringify({ ok: true, ignored: "device desconocido" }));
+    // No es un dispositivo de vehículo: puede ser el celular de un conductor.
+    // Esos solo tienen estado de conexión (no hay vehicleId para colgar un Alert).
+    const driverDevice = await systemFindDriverByTraccarId(event.deviceId);
+    if (!driverDevice) {
+      return new Response(JSON.stringify({ ok: true, ignored: "device desconocido" }));
+    }
+    const occurredAt = event.eventTime ? new Date(event.eventTime) : new Date();
+    if (event.type === "deviceOffline") {
+      await systemSetDriverConnectionStatus(event.deviceId, DeviceConnectionStatus.OFFLINE);
+    } else if (event.type === "deviceOnline") {
+      await systemSetDriverConnectionStatus(event.deviceId, DeviceConnectionStatus.ONLINE, occurredAt);
+    }
+    return new Response(JSON.stringify({ ok: true }));
   }
 
   const occurredAt = event.eventTime ? new Date(event.eventTime) : new Date();

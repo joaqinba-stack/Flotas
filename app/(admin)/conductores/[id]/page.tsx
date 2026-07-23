@@ -7,14 +7,19 @@ import { listJornadas } from "@/lib/data/jornadas";
 import { StatusBadge } from "@/components/badges";
 import { PerformanceRecordList } from "@/components/performance-records";
 import { fmtDate, fmtDateTime } from "@/lib/format";
-import { addPerformanceRecordAction } from "../actions";
+import {
+  addPerformanceRecordAction,
+  provisionDriverDeviceAction,
+  updateDriverDeviceAction,
+  removeDriverDeviceAction,
+} from "../actions";
 
 export default async function ConductorDetallePage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; warning?: string }>;
 }) {
   const session = await requireSession(Role.SUPERVISOR);
   const { id } = await params;
@@ -34,6 +39,7 @@ export default async function ConductorDetallePage({
         <Link className="btn secondary" href={`/conductores/${id}/editar`}>Editar</Link>
       </div>
       {sp.error && <p className="alert-error">{sp.error}</p>}
+      {sp.warning && <p className="alert-warn">{sp.warning}</p>}
 
       <div className="card">
         <dl className="detail-grid">
@@ -91,6 +97,74 @@ export default async function ConductorDetallePage({
           </div>
           <button className="btn" type="submit">Registrar</button>
         </form>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Rastreo por celular (Traccar Client)</h2>
+        {driver.device ? (
+          <>
+            <dl className="detail-grid">
+              <div><dt>Identificador del dispositivo</dt><dd className="mono">{driver.device.uniqueId}</dd></div>
+              <div><dt>Estado de conexión</dt><dd><StatusBadge value={driver.device.connectionStatus} /></dd></div>
+              <div><dt>Última señal</dt><dd>{fmtDateTime(driver.device.lastSeenAt)}</dd></div>
+              <div>
+                <dt>Sync con Traccar</dt>
+                <dd>
+                  <StatusBadge value={driver.device.traccarId !== null ? "SYNC_OK" : "SYNC_PENDING"} />
+                  {driver.device.traccarId !== null && <span className="muted"> id {driver.device.traccarId}</span>}
+                </dd>
+              </div>
+            </dl>
+            {driver.device.traccarId === null && (
+              <p className="alert-warn">
+                Este equipo existe solo en la app: nunca se dio de alta en Traccar, así que no va a
+                recibir posiciones. El worker lo reintenta en cada ciclo de polling.
+              </p>
+            )}
+            <form className="filter-bar" action={updateDriverDeviceAction.bind(null, id, driver.device.id)}>
+              <div className="field">
+                <label htmlFor="deviceName">Nombre</label>
+                <input id="deviceName" name="name" required defaultValue={driver.device.name} />
+              </div>
+              <div className="field">
+                <label htmlFor="monitoringIntervalSeconds">Intervalo de monitoreo (s)</label>
+                <input
+                  id="monitoringIntervalSeconds"
+                  name="monitoringIntervalSeconds"
+                  type="number"
+                  required
+                  defaultValue={driver.device.monitoringIntervalSeconds}
+                />
+              </div>
+              <button className="btn" type="submit">Guardar</button>
+            </form>
+            <form action={removeDriverDeviceAction.bind(null, id, driver.device.id)}>
+              <button className="btn danger small" type="submit">Quitar dispositivo</button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="muted">
+              Registrá acá el identificador que vas a configurar en la app Traccar Client del celular
+              del conductor (protocolo OsmAnd, puerto 5055).
+            </p>
+            <form className="filter-bar" action={provisionDriverDeviceAction.bind(null, id)}>
+              <div className="field">
+                <label htmlFor="uniqueId">Identificador del dispositivo</label>
+                <input id="uniqueId" name="uniqueId" required placeholder={`conductor-${driver.documentId}`} />
+              </div>
+              <div className="field">
+                <label htmlFor="deviceName">Nombre</label>
+                <input id="deviceName" name="name" required defaultValue={`${driver.firstName} ${driver.lastName}`} />
+              </div>
+              <div className="field">
+                <label htmlFor="monitoringIntervalSeconds">Intervalo (s)</label>
+                <input id="monitoringIntervalSeconds" name="monitoringIntervalSeconds" type="number" required defaultValue={60} />
+              </div>
+              <button className="btn" type="submit">Provisionar</button>
+            </form>
+          </>
+        )}
       </div>
 
       <div className="card">

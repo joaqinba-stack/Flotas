@@ -6,7 +6,7 @@ import { buildOrgScopeWhere } from "@/lib/auth/scope";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 import { assertOrgUnitInScope } from "./org-units";
 
-function driverScopeWhere(session: SessionUser): Prisma.DriverWhereInput {
+export function driverScopeWhere(session: SessionUser): Prisma.DriverWhereInput {
   if (session.role === Role.DRIVER) {
     if (!session.driverId) throw new ForbiddenError();
     return { id: session.driverId };
@@ -64,6 +64,7 @@ export async function getDriver(session: SessionUser, id: string) {
       orgUnit: true,
       user: { select: { email: true, active: true } },
       assignedVehicles: { select: { id: true, plate: true, brand: true, model: true } },
+      device: true,
     },
   });
   if (!driver) throw new NotFoundError("Conductor no encontrado");

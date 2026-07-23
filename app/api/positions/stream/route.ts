@@ -1,6 +1,6 @@
 import { requireApiSession } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
-import { latestPositions } from "@/lib/data/positions";
+import { latestPositions, latestDriverPositions } from "@/lib/data/positions";
 import { ApiError } from "@/lib/errors";
 
 const PUSH_INTERVAL_MS = 5_000;
@@ -22,8 +22,13 @@ export async function GET(req: Request) {
       const send = async () => {
         if (closed) return;
         try {
-          const positions = await latestPositions(session);
-          const body = JSON.stringify(positions, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
+          const [vehicles, drivers] = await Promise.all([
+            latestPositions(session),
+            latestDriverPositions(session),
+          ]);
+          const body = JSON.stringify({ vehicles, drivers }, (_k, v) =>
+            typeof v === "bigint" ? v.toString() : v,
+          );
           controller.enqueue(encoder.encode(`data: ${body}\n\n`));
         } catch {
           closed = true;

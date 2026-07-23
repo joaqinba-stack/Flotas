@@ -3,6 +3,7 @@ import { ingestTraccarPositions, pollTraccarPositions } from "@/lib/jobs/poll-tr
 import { evaluateAlertRules } from "@/lib/jobs/evaluate-alert-rules";
 import { processQueuedReportRuns } from "@/lib/jobs/generate-report";
 import { systemSetConnectionStatus } from "@/lib/data/traccar-devices";
+import { systemSetDriverConnectionStatus } from "@/lib/data/driver-devices";
 import { DeviceConnectionStatus } from "@/lib/data/types";
 
 const POLL_INTERVAL_MS = 60_000;
@@ -33,9 +34,11 @@ function main() {
             : d.status === "offline"
               ? DeviceConnectionStatus.OFFLINE
               : DeviceConnectionStatus.UNKNOWN;
-        await safe("ws-device-status", () =>
-          systemSetConnectionStatus(d.id, status, d.lastUpdate ? new Date(d.lastUpdate) : undefined),
-        );
+        const lastSeenAt = d.lastUpdate ? new Date(d.lastUpdate) : undefined;
+        // d.id es un traccarId: puede ser un dispositivo de vehículo o de
+        // conductor, cada uno resuelve como no-op si no es suyo.
+        await safe("ws-device-status", () => systemSetConnectionStatus(d.id, status, lastSeenAt));
+        await safe("ws-driver-device-status", () => systemSetDriverConnectionStatus(d.id, status, lastSeenAt));
       }
     },
   });

@@ -125,6 +125,8 @@ model Driver {
   permits            Permit[]
   performanceRecords DriverPerformanceRecord[]
   incidents          Incident[]
+  device             DriverDevice?
+  positions          DriverPositionSnapshot[]
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
 
@@ -203,6 +205,25 @@ model TraccarDevice {
   id                        String                 @id @default(cuid())
   vehicleId                 String                 @unique
   vehicle                   Vehicle                @relation(fields: [vehicleId], references: [id])
+  // id interno del dispositivo en el servidor Traccar (null si aún no se pudo provisionar allá)
+  traccarId                 Int?                   @unique
+  uniqueId                  String                 @unique
+  name                      String
+  monitoringIntervalSeconds Int                    @default(60)
+  connectionStatus          DeviceConnectionStatus @default(UNKNOWN)
+  lastSeenAt                DateTime?
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+}
+
+// Celular del conductor corriendo Traccar Client (protocolo OsmAnd). Mismo
+// patrón que TraccarDevice, pero cuelga de Driver en vez de Vehicle: rastrea
+// a la persona, no a la unidad (útil cuando el conductor se mueve sin vehículo
+// asignado o para cruzar su posición con la del vehículo).
+model DriverDevice {
+  id                        String                 @id @default(cuid())
+  driverId                  String                 @unique
+  driver                    Driver                 @relation(fields: [driverId], references: [id])
   // id interno del dispositivo en el servidor Traccar (null si aún no se pudo provisionar allá)
   traccarId                 Int?                   @unique
   uniqueId                  String                 @unique
@@ -616,6 +637,26 @@ model PositionSnapshot {
   attributes        Json?
 
   @@index([vehicleId, recordedAt])
+}
+
+model DriverPositionSnapshot {
+  id                String   @id @default(cuid())
+  driverId          String
+  driver            Driver   @relation(fields: [driverId], references: [id])
+  // id de la posición en Traccar, para deduplicar entre WebSocket/polling/webhook
+  traccarPositionId BigInt?  @unique
+  latitude          Float
+  longitude         Float
+  speedKmh          Float
+  course            Float?
+  recordedAt        DateTime
+  receivedAt        DateTime @default(now())
+  // true cuando recordedAt quedó muy por detrás de receivedAt: dato reconciliado
+  // desde el buffer offline del dispositivo (corte de señal/eléctrico)
+  isBuffered        Boolean  @default(false)
+  attributes        Json?
+
+  @@index([driverId, recordedAt])
 }
 
 model Supplier {

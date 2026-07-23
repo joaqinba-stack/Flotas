@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { SessionUser } from "@/lib/auth/session";
 import { getVehicle, vehicleScopeWhere } from "./vehicles";
+import { driverScopeWhere } from "./drivers";
 import type { NormalizedPosition } from "@/lib/traccar/normalize";
 
 export async function getVehiclePositions(
@@ -35,6 +36,27 @@ export async function latestPositions(session: SessionUser) {
           status: true,
           currentDriver: { select: { firstName: true, lastName: true } },
           traccarDevice: { select: { connectionStatus: true } },
+        },
+      },
+    },
+  });
+}
+
+// Última posición conocida de cada conductor (celular con Traccar Client)
+// dentro del alcance del viewer.
+export async function latestDriverPositions(session: SessionUser) {
+  return prisma.driverPositionSnapshot.findMany({
+    where: { driver: { AND: [driverScopeWhere(session)] } },
+    orderBy: { recordedAt: "desc" },
+    distinct: ["driverId"],
+    include: {
+      driver: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+          device: { select: { connectionStatus: true } },
         },
       },
     },
@@ -96,4 +118,47 @@ export async function systemLatestTwoPositions(vehicleId: string) {
     orderBy: { recordedAt: "desc" },
     take: 2,
   });
+}
+
+export async function systemIngestDriverPositions(
+  rows: Array<NormalizedPosition & { driverId: string }>,
+) {
+  if (rows.length === 0) return { count: 0 };
+  const result = await prisma.driverPositionSnapshot.createMany({
+    data: rows.map((r) => ({
+      driverId: r.driverId,
+      traccarPositionId: r.traccarPositionId,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      speedKmh: r.speedKmh,
+      course: r.course,
+      recordedAt: r.recordedAt,
+      receivedAt: r.receivedAt,
+      isBuffered: r.isBuffered,
+      attributes: r.attributes as Prisma.InputJsonValue,
+    })),
+    skipDuplicates: true,
+  });
+
+  const byDriver = new Map<string, Date>();
+  for (const r of rows) {
+    const prev = byDriver.get(r.driverId);
+    if (!prev || r.recordedAt > prev) byDriver.set(r.driverId, r.recordedAt);
+  }
+  for (const [driverId, lastSeenAt] of byDriver) {
+    await prisma.driverDevice.updateMany({
+      where: { driverId, OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: lastSeenAt } }] },
+      data: { lastSeenAt, connectionStatus: "ONLINE" },
+    });
+  }
+  return result;
+}
+
+export async function systemLatestDriverPositionAt(driverId: string): Promise<Date | null> {
+  const last = await prisma.driverPositionSnapshot.findFirst({
+    where: { driverId },
+    orderBy: { recordedAt: "desc" },
+    select: { recordedAt: true },
+  });
+  return last?.recordedAt ?? null;
 }
