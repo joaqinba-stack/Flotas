@@ -22,6 +22,31 @@ export async function getVehiclePositions(
   });
 }
 
+// Historial completo de posiciones para el motor de reportes (dataset POSITIONS).
+// A diferencia de getVehiclePositions, no aplica un límite bajo por defecto: la
+// corrida es asíncrona (worker), así que puede traer el historial completo del
+// alcance del viewer para exportarlo a XLSX y filtrar ahí.
+export async function listPositionsForReport(
+  session: SessionUser,
+  filters: { vehicleId?: string; from?: Date; to?: Date },
+) {
+  const where: Prisma.PositionSnapshotWhereInput = {
+    vehicle: { AND: [vehicleScopeWhere(session)] },
+  };
+  if (filters.vehicleId) where.vehicleId = filters.vehicleId;
+  if (filters.from || filters.to) {
+    where.recordedAt = {
+      ...(filters.from ? { gte: filters.from } : {}),
+      ...(filters.to ? { lte: filters.to } : {}),
+    };
+  }
+  return prisma.positionSnapshot.findMany({
+    where,
+    orderBy: { recordedAt: "desc" },
+    include: { vehicle: { select: { plate: true } } },
+  });
+}
+
 // Última posición conocida de cada vehículo dentro del alcance del viewer.
 export async function latestPositions(session: SessionUser) {
   return prisma.positionSnapshot.findMany({

@@ -6,6 +6,7 @@ import {
   validDatasetId,
   validateColumns,
   parseDatasetFilters,
+  DATASET_COLUMNS,
   type ReportDatasetId,
 } from "@/lib/reports/definitions";
 import { readReportFile } from "@/lib/storage";
@@ -60,6 +61,30 @@ export async function createReportDefinition(session: SessionUser, input: Report
       dataset,
       columns: input.columns,
       filters: input.filters as Prisma.InputJsonValue,
+      createdById: session.userId,
+    },
+  });
+}
+
+// Definición canónica reutilizada por el botón de descarga rápida de
+// "Reportes": un solo click encola una corrida XLSX con todo el historial de
+// ubicaciones del alcance del viewer (sin filtros) — el filtrado se hace
+// después en la planilla, no en la UI.
+const QUICK_POSITIONS_EXPORT_NAME = "Historial de ubicaciones (todas)";
+
+export async function getOrCreatePositionsReportDefinition(session: SessionUser) {
+  requireManager(session);
+  const existing = await prisma.reportDefinition.findFirst({
+    where: { dataset: "POSITIONS", name: QUICK_POSITIONS_EXPORT_NAME },
+  });
+  if (existing) return existing;
+  return prisma.reportDefinition.create({
+    data: {
+      name: QUICK_POSITIONS_EXPORT_NAME,
+      description: "Descarga de un solo click con todo el historial de posiciones registrado por dispositivo.",
+      dataset: "POSITIONS",
+      columns: DATASET_COLUMNS.POSITIONS.map((c) => c.key),
+      filters: {},
       createdById: session.userId,
     },
   });

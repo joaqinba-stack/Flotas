@@ -49,6 +49,10 @@ export const DATASET_FILTER_SCHEMAS = {
     severity: z.nativeEnum(AlertSeverity).optional(),
     vehicleId: z.string().optional(),
   }),
+  POSITIONS: z.object({
+    vehicleId: z.string().optional(),
+    ...dateRangeFilter,
+  }),
 } as const;
 
 export type ReportDatasetId = keyof typeof DATASET_FILTER_SCHEMAS;
@@ -114,6 +118,18 @@ export const DATASET_COLUMNS: Record<ReportDatasetId, ColumnDef[]> = {
     { key: "message", label: "Mensaje" },
     { key: "occurredAt", label: "Ocurrió" },
   ],
+  POSITIONS: [
+    { key: "vehiclePlate", label: "Vehículo" },
+    { key: "recordedAt", label: "Registrado (dispositivo)" },
+    { key: "receivedAt", label: "Recibido" },
+    { key: "latitude", label: "Latitud" },
+    { key: "longitude", label: "Longitud" },
+    { key: "speedKmh", label: "Velocidad (km/h)" },
+    { key: "course", label: "Rumbo" },
+    { key: "ignition", label: "Ignición" },
+    { key: "odometerKm", label: "Odómetro (km)" },
+    { key: "isBuffered", label: "Buffer offline" },
+  ],
 };
 
 export const DATASET_LABELS: Record<ReportDatasetId, string> = {
@@ -123,6 +139,7 @@ export const DATASET_LABELS: Record<ReportDatasetId, string> = {
   JORNADAS: "Jornadas operativas",
   INCIDENTS: "Incidencias",
   ALERTS: "Alertas",
+  POSITIONS: "Historial de ubicaciones",
 };
 
 export const reportColumnsSchema = z.array(z.string()).min(1, "Seleccione al menos una columna");

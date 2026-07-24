@@ -5,6 +5,7 @@ import { listFuelLoads } from "@/lib/data/fuel-loads";
 import { listJornadas } from "@/lib/data/jornadas";
 import { listIncidents } from "@/lib/data/incidents";
 import { listAlerts } from "@/lib/data/alerts";
+import { listPositionsForReport } from "@/lib/data/positions";
 import type { ReportDatasetId } from "./definitions";
 
 type Row = Record<string, unknown>;
@@ -89,6 +90,21 @@ const FETCHERS: Record<ReportDatasetId, (session: SessionUser, filters: Record<s
       vehiclePlate: a.vehicle.plate,
       message: a.message,
       occurredAt: a.occurredAt,
+    }));
+  },
+  async POSITIONS(session, filters) {
+    const positions = await listPositionsForReport(session, filters as Parameters<typeof listPositionsForReport>[1]);
+    return positions.map((p) => ({
+      vehiclePlate: p.vehicle.plate,
+      recordedAt: p.recordedAt,
+      receivedAt: p.receivedAt,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      speedKmh: p.speedKmh,
+      course: p.course,
+      ignition: p.ignition === null ? "" : p.ignition ? "Encendida" : "Apagada",
+      odometerKm: p.odometerKm,
+      isBuffered: p.isBuffered ? "Sí" : "No",
     }));
   },
 };

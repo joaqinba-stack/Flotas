@@ -4,7 +4,7 @@ import { requireSession } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
 import { formDataToObject, runFormAction } from "@/lib/actions";
 import { reportDefinitionInputSchema, reportRunInputSchema } from "@/lib/validation/inputs";
-import { createReportDefinition, queueReportRun } from "@/lib/data/reports";
+import { createReportDefinition, queueReportRun, getOrCreatePositionsReportDefinition } from "@/lib/data/reports";
 
 export async function createReportDefinitionAction(formData: FormData) {
   const session = await requireSession(Role.SUPERVISOR);
@@ -16,6 +16,18 @@ export async function createReportDefinitionAction(formData: FormData) {
       filters: raw.filters || "{}",
     });
     const definition = await createReportDefinition(session, input);
+    return `/reportes/${definition.id}`;
+  });
+}
+
+// Botón de "un solo click" en /reportes: encola una corrida XLSX con todo el
+// historial de ubicaciones del alcance del viewer y lleva a la definición
+// canónica, donde el link de descarga aparece apenas el worker la termine.
+export async function quickExportAllPositionsAction() {
+  const session = await requireSession(Role.SUPERVISOR);
+  return runFormAction({ errorPath: "/reportes" }, async () => {
+    const definition = await getOrCreatePositionsReportDefinition(session);
+    await queueReportRun(session, definition.id, "XLSX", {});
     return `/reportes/${definition.id}`;
   });
 }

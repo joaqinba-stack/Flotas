@@ -769,6 +769,7 @@ enum ReportDataset {
   JORNADAS
   INCIDENTS
   ALERTS
+  POSITIONS
 }
 
 model ReportDefinition {

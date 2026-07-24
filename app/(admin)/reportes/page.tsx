@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
 import { listReportDefinitions } from "@/lib/data/reports";
 import { DATASET_LABELS, type ReportDatasetId } from "@/lib/reports/definitions";
+import { quickExportAllPositionsAction } from "./actions";
 
 export default async function ReportesPage() {
   const session = await requireSession(Role.SUPERVISOR);
@@ -13,6 +14,17 @@ export default async function ReportesPage() {
       <div className="page-header">
         <h1>Reportes</h1>
         <Link className="btn" href="/reportes/nuevo">Nueva definición</Link>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Historial de ubicaciones</h2>
+        <p className="muted">
+          Descarga en un solo paso todo el historial de posiciones registrado por los dispositivos
+          dentro de tu alcance, sin filtrar nada — filtrá después en la planilla.
+        </p>
+        <form action={quickExportAllPositionsAction}>
+          <button className="btn" type="submit">Descargar todo el historial (XLSX)</button>
+        </form>
       </div>
 
       <table className="data">
