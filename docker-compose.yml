@@ -76,6 +76,8 @@ services:
       AUTH_TRUST_HOST: "true"
     ports:
       - "3000:3000"
+    volumes:
+      - app-var-data:/app/var
     restart: unless-stopped
 
   # Worker de background: WebSocket de Traccar, poll de posiciones, motor de
@@ -94,9 +96,16 @@ services:
       DATABASE_URL: "postgresql://flotas:flotas@app-db:5432/flotas"
       TRACCAR_URL: "http://traccar:8082"
     command: ["npm", "run", "worker"]
+    volumes:
+      # Comparte var/ con `app`: los uploads y reportes que genera el worker
+      # (lib/storage.ts, disco local) tienen que ser legibles por la app que
+      # sirve la descarga — son contenedores distintos, no comparten filesystem
+      # por default.
+      - app-var-data:/app/var
     restart: unless-stopped
 
 volumes:
   app-db-data:
   traccar-db-data:
   traccar-data:
+  app-var-data:
