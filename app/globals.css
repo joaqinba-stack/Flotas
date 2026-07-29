@@ -64,16 +64,18 @@ h3 { font-size: 15px; margin: 16px 0 8px; }
   /* Los links viven dentro del div de cada sección: sin display block quedan
      inline, fluyen en fila y desbordan el panel. */
   display: block;
-  color: #cbd7e2;
-  padding: 8px 16px;
-  font-size: 13px;
+  color: #93a7ba;
+  padding: 7px 16px 7px 24px;
+  font-size: 12px;
 }
 .sidebar nav a:hover { background: #1d3040; text-decoration: none; color: #fff; }
+/* El rótulo de sección pesa más que sus links: es el título del grupo. */
 .sidebar .nav-section {
-  font-size: 10px;
+  font-size: 14px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6e8399;
+  letter-spacing: 0.06em;
+  color: #fff;
   padding: 14px 16px 4px;
 }
 .sidebar .session-box {

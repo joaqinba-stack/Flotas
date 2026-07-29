@@ -202,7 +202,11 @@
 }
 
 /* Cabecera de sección: es un <button> porque pliega y despliega, pero tiene
-   que leerse igual que el rótulo estático que reemplaza. */
+   que leerse igual que el rótulo estático que reemplaza.
+   El rótulo es el título del grupo, así que pesa más que sus propios links:
+   más grande, en blanco y con la tipografía de títulos. Antes era al revés
+   —10px apagado contra links de 14px casi blancos— y el submenú se leía como
+   si fuera el menú. */
 .ds.sidebar .nav-section {
   display: flex;
   align-items: center;
@@ -212,21 +216,25 @@
   border: 0;
   background: none;
   font: inherit;
-  font-size: 10px;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-accent-300);
+  letter-spacing: 0.06em;
+  color: #fff;
   cursor: pointer;
   text-align: left;
 }
-.ds.sidebar .nav-section:hover { color: #fff; }
-.ds.sidebar .nav-section .chev { font-size: 9px; }
+/* El color ya es blanco, así que el hover se marca con un fondo apenas visible
+   en vez de aclarar la letra. */
+.ds.sidebar .nav-section:hover { background: color-mix(in srgb, #fff 7%, transparent); }
+.ds.sidebar .nav-section .chev { font-size: 10px; }
 
 .ds.sidebar nav a {
   display: block;
-  padding: 8px 20px;
-  font-size: 14px;
-  color: var(--color-accent-100);
+  padding: 7px 20px 7px 28px;
+  font-size: 13px;
+  color: var(--color-accent-300);
   text-decoration: none;
 }
 .ds.sidebar nav a:hover { background: var(--color-accent-800); color: #fff; }
