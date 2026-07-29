@@ -164,22 +164,22 @@ async function main() {
   const tallerCentral = await prisma.supplier.create({
     data: {
       name: "Taller Mecánico Central S.R.L.",
-      taxId: "30-71234567-9",
+      taxId: "80012345-6",
       serviceTypes: "Mecánica general, chapa y pintura",
       contactName: "Roberto Giménez",
-      contactEmail: "contacto@tallercentral.com.ar",
-      contactPhone: "+54 11 4555-1000",
+      contactEmail: "contacto@tallercentral.com.py",
+      contactPhone: "+595 21 455 1000",
       active: true,
     },
   });
   const gomeria = await prisma.supplier.create({
     data: {
       name: "Gomería del Sur",
-      taxId: "30-70999888-1",
+      taxId: "80099988-1",
       serviceTypes: "Neumáticos, alineación y balanceo",
       contactName: "Marta Ríos",
-      contactEmail: "ventas@gomeriadelsur.com.ar",
-      contactPhone: "+54 11 4666-2000",
+      contactEmail: "ventas@gomeriadelsur.com.py",
+      contactPhone: "+595 21 466 2000",
       active: true,
     },
   });
@@ -190,29 +190,29 @@ async function main() {
   console.log("[seed:demo] conductores…");
   const driverJuan = await prisma.driver.create({
     data: {
-      firstName: "Juan", lastName: "Pérez", documentId: "28345678", licenseNumber: "B-28345678",
-      licenseCategory: "D2", licenseExpiry: daysAhead(400), phone: "+54 9 11 5111-1111",
+      firstName: "Juan", lastName: "Pérez", documentId: "3456789", licenseNumber: "B-3456789",
+      licenseCategory: "D2", licenseExpiry: daysAhead(400), phone: "+595 981 111 111",
       status: DriverStatus.ACTIVE, orgUnitId: baseNorte.id,
     },
   });
   const driverAna = await prisma.driver.create({
     data: {
-      firstName: "Ana", lastName: "Gómez", documentId: "30987654", licenseNumber: "B-30987654",
-      licenseCategory: "D1", licenseExpiry: daysAhead(120), phone: "+54 9 11 5222-2222",
+      firstName: "Ana", lastName: "Gómez", documentId: "4123456", licenseNumber: "B-4123456",
+      licenseCategory: "D1", licenseExpiry: daysAhead(120), phone: "+595 982 222 222",
       status: DriverStatus.ACTIVE, orgUnitId: baseNorte.id,
     },
   });
   const driverLuis = await prisma.driver.create({
     data: {
-      firstName: "Luis", lastName: "Martínez", documentId: "26111222", licenseNumber: "B-26111222",
-      licenseCategory: "E1", licenseExpiry: daysAhead(30), phone: "+54 9 11 5333-3333",
+      firstName: "Luis", lastName: "Martínez", documentId: "2987654", licenseNumber: "B-2987654",
+      licenseCategory: "E1", licenseExpiry: daysAhead(30), phone: "+595 983 333 333",
       status: DriverStatus.ACTIVE, orgUnitId: baseSur.id,
     },
   });
   const driverSofia = await prisma.driver.create({
     data: {
-      firstName: "Sofía", lastName: "Díaz", documentId: "32444555", licenseNumber: "B-32444555",
-      licenseCategory: "D2", licenseExpiry: daysAgo(10), phone: "+54 9 11 5444-4444",
+      firstName: "Sofía", lastName: "Díaz", documentId: "5234567", licenseNumber: "B-5234567",
+      licenseCategory: "D2", licenseExpiry: daysAgo(10), phone: "+595 984 444 444",
       status: DriverStatus.SUSPENDED, orgUnitId: baseSur.id,
     },
   });
@@ -326,13 +326,15 @@ async function main() {
   });
 
   // ---------------------------------------------------------------------------
-  // 6. Posiciones (para el mapa en vivo e histórico). Zona AMBA.
+  // 6. Posiciones (para el mapa en vivo e histórico). Área Metropolitana de
+  // Asunción: tiene que coincidir con el centro por defecto de los mapas
+  // (components/map/*.tsx), o la demo abre en Asunción y salta a otro país.
   // ---------------------------------------------------------------------------
   console.log("[seed:demo] posiciones…");
   const tracks: Array<{ vehicle: typeof vAB; base: [number, number] }> = [
-    { vehicle: vAB, base: [-34.552, -58.462] },
-    { vehicle: vCD, base: [-34.603, -58.381] },
-    { vehicle: vGH, base: [-34.705, -58.402] },
+    { vehicle: vAB, base: [-25.282, -57.635] }, // Asunción centro
+    { vehicle: vCD, base: [-25.340, -57.520] }, // San Lorenzo
+    { vehicle: vGH, base: [-25.268, -57.638] }, // zona del puerto de Asunción
   ];
   for (const { vehicle, base } of tracks) {
     const rows = [];
@@ -609,14 +611,14 @@ async function main() {
     data: {
       name: "Predio Base Norte", description: "Perímetro del depósito de la Base Norte", orgUnitId: baseNorte.id,
       active: true, createdById: supervisor.id,
-      polygon: [[-34.548, -58.466], [-34.548, -58.458], [-34.556, -58.458], [-34.556, -58.466]],
+      polygon: [[-25.278, -57.639], [-25.278, -57.631], [-25.286, -57.631], [-25.286, -57.639]],
     },
   });
   await prisma.geofence.create({
     data: {
       name: "Zona restringida puerto", description: "Área que requiere permiso de acceso", orgUnitId: baseSur.id,
       active: true, createdById: admin.id,
-      polygon: [[-34.700, -58.410], [-34.700, -58.395], [-34.712, -58.395], [-34.712, -58.410]],
+      polygon: [[-25.262, -57.643], [-25.262, -57.633], [-25.274, -57.633], [-25.274, -57.643]],
     },
   });
 
@@ -648,7 +650,7 @@ async function main() {
   await prisma.alertNotificationLog.createMany({
     data: [
       { alertId: alertSpeed.id, channel: NotificationChannel.EMAIL, recipient: "supervisor@flotas.local", status: NotificationStatus.SENT, sentAt: hoursAgo(5) },
-      { alertId: alertSpeed.id, channel: NotificationChannel.SMS, recipient: "+54 9 11 5111-1111", status: NotificationStatus.PENDING },
+      { alertId: alertSpeed.id, channel: NotificationChannel.SMS, recipient: "+595 981 111 111", status: NotificationStatus.PENDING },
     ],
   });
 
@@ -682,7 +684,7 @@ async function main() {
   const ticket1 = await prisma.deskTicket.create({
     data: {
       channel: DeskChannel.PHONE, subject: "Conductor reporta ruido de frenos", description: "Llamado del conductor de EF789GH sobre chirrido al frenar.",
-      status: DeskTicketStatus.RESOLVED, priority: IncidentUrgency.HIGH, requesterName: "Luis Martínez", requesterContact: "+54 9 11 5333-3333",
+      status: DeskTicketStatus.RESOLVED, priority: IncidentUrgency.HIGH, requesterName: "Luis Martínez", requesterContact: "+595 983 333 333",
       vehicleId: vEF.id, linkedIncidentId: incFrenos.id, assignedToId: mesa.id, createdById: mesa.id,
     },
   });

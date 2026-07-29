@@ -43,7 +43,7 @@ export default async function ConductorDetallePage({
 
       <div className="card">
         <dl className="detail-grid">
-          <div><dt>Documento</dt><dd>{driver.documentId}</dd></div>
+          <div><dt>Cédula</dt><dd>{driver.documentId}</dd></div>
           <div><dt>Licencia</dt><dd>{driver.licenseNumber} ({driver.licenseCategory})</dd></div>
           <div><dt>Vencimiento</dt><dd>{fmtDate(driver.licenseExpiry)}</dd></div>
           <div><dt>Teléfono</dt><dd>{driver.phone ?? "—"}</dd></div>

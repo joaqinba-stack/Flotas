@@ -26,7 +26,7 @@ export default async function ConductoresPage({
       <form className="filter-bar" method="get">
         <div className="field">
           <label htmlFor="q">Buscar</label>
-          <input id="q" name="q" defaultValue={params.q ?? ""} placeholder="Nombre, apellido, DNI" />
+          <input id="q" name="q" defaultValue={params.q ?? ""} placeholder="Nombre, apellido, cédula" />
         </div>
         <div className="field">
           <label htmlFor="status">Estado</label>
@@ -44,7 +44,7 @@ export default async function ConductoresPage({
         <thead>
           <tr>
             <th>Apellido y nombre</th>
-            <th>DNI</th>
+            <th>Cédula</th>
             <th>Licencia</th>
             <th>Vencimiento</th>
             <th>Unidad</th>

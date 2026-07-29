@@ -30,7 +30,7 @@ export function DriverForm({
       </div>
       <div className="form-row">
         <div className="field">
-          <label htmlFor="documentId">Documento (Cédula)</label>
+          <label htmlFor="documentId">Cédula</label>
           <input id="documentId" name="documentId" required defaultValue={driver?.documentId ?? ""} />
         </div>
         <div className="field">

@@ -19,7 +19,7 @@ export default async function DriverHome() {
         <h2 style={{ marginTop: 0 }}>Mis datos</h2>
         <dl className="detail-grid">
           <div><dt>Nombre</dt><dd>{driver.lastName}, {driver.firstName}</dd></div>
-          <div><dt>Documento</dt><dd>{driver.documentId}</dd></div>
+          <div><dt>Cédula</dt><dd>{driver.documentId}</dd></div>
           <div><dt>Licencia</dt><dd>{driver.licenseNumber} ({driver.licenseCategory})</dd></div>
           <div><dt>Vencimiento de licencia</dt><dd>{fmtDate(driver.licenseExpiry)}</dd></div>
           <div><dt>Unidad</dt><dd>{driver.orgUnit.name}</dd></div>

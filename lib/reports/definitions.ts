@@ -72,7 +72,7 @@ export const DATASET_COLUMNS: Record<ReportDatasetId, ColumnDef[]> = {
   DRIVERS: [
     { key: "lastName", label: "Apellido" },
     { key: "firstName", label: "Nombre" },
-    { key: "documentId", label: "Documento" },
+    { key: "documentId", label: "Cédula" },
     { key: "licenseNumber", label: "Licencia" },
     { key: "licenseCategory", label: "Categoría" },
     { key: "licenseExpiry", label: "Vencimiento licencia" },
