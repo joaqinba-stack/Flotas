@@ -20,7 +20,8 @@ export default async function ReportesPage() {
         <h2 style={{ marginTop: 0 }}>Historial de ubicaciones</h2>
         <p className="muted">
           Descarga en un solo paso todo el historial de posiciones registrado por los dispositivos
-          dentro de tu alcance, sin filtrar nada — filtrá después en la planilla.
+          dentro de tu alcance, sin filtrar nada — filtrá después en la planilla. El archivo se
+          prepara en segundo plano y la descarga arranca sola apenas está listo.
         </p>
         <form action={quickExportAllPositionsAction}>
           <button className="btn" type="submit">Descargar todo el historial (XLSX)</button>

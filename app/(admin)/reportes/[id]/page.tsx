@@ -3,6 +3,7 @@ import { Role } from "@/lib/data/types";
 import { getReportDefinition, listReportRuns } from "@/lib/data/reports";
 import { DATASET_COLUMNS, DATASET_LABELS, type ReportDatasetId } from "@/lib/reports/definitions";
 import { StatusBadge } from "@/components/badges";
+import { RunWatcher } from "@/components/reports/run-watcher";
 import { fmtDateTime } from "@/lib/format";
 import { queueReportRunAction } from "../actions";
 
@@ -11,7 +12,7 @@ export default async function DefinicionReportePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; run?: string }>;
 }) {
   const session = await requireSession(Role.SUPERVISOR);
   const { id } = await params;
@@ -22,6 +23,8 @@ export default async function DefinicionReportePage({
   ]);
   const dataset = definition.dataset as ReportDatasetId;
   const selectedColumns = definition.columns as string[];
+  const hasPending = runs.some((r) => r.status === "QUEUED" || r.status === "RUNNING");
+  const watchedRun = sp.run ? runs.find((r) => r.id === sp.run) : undefined;
 
   return (
     <div>
@@ -53,11 +56,12 @@ export default async function DefinicionReportePage({
           </div>
           <button className="btn" type="submit">Generar</button>
         </form>
-        <p className="muted">La generación es asíncrona: el worker la procesa en segundos y esta lista se actualiza al recargar.</p>
+        <p className="muted">La generación es asíncrona: el worker la procesa en segundos y la lista de abajo se actualiza sola.</p>
       </div>
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Corridas</h2>
+        <RunWatcher hasPending={hasPending} watchedRunId={sp.run} watchedStatus={watchedRun?.status} />
         <table className="data">
           <thead><tr><th>Solicitada</th><th>Formato</th><th>Estado</th><th>Filas</th><th>Solicitado por</th><th>Descarga</th></tr></thead>
           <tbody>

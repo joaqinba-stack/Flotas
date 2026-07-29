@@ -22,13 +22,14 @@ export async function createReportDefinitionAction(formData: FormData) {
 
 // Botón de "un solo click" en /reportes: encola una corrida XLSX con todo el
 // historial de ubicaciones del alcance del viewer y lleva a la definición
-// canónica, donde el link de descarga aparece apenas el worker la termine.
+// canónica. El ?run= es lo que permite que la página siga esa corrida y
+// dispare la descarga sola cuando el worker la termina (ver RunWatcher).
 export async function quickExportAllPositionsAction() {
   const session = await requireSession(Role.SUPERVISOR);
   return runFormAction({ errorPath: "/reportes" }, async () => {
     const definition = await getOrCreatePositionsReportDefinition(session);
-    await queueReportRun(session, definition.id, "XLSX", {});
-    return `/reportes/${definition.id}`;
+    const run = await queueReportRun(session, definition.id, "XLSX", {});
+    return `/reportes/${definition.id}?run=${run.id}`;
   });
 }
 
@@ -39,8 +40,8 @@ export async function queueReportRunAction(definitionId: string, formData: FormD
     async () => {
       const raw = formDataToObject(formData);
       const input = reportRunInputSchema.parse({ ...raw, filterOverrides: raw.filterOverrides || "{}" });
-      await queueReportRun(session, definitionId, input.format, input.filterOverrides);
-      return `/reportes/${definitionId}`;
+      const run = await queueReportRun(session, definitionId, input.format, input.filterOverrides);
+      return `/reportes/${definitionId}?run=${run.id}`;
     },
   );
 }

@@ -27,7 +27,7 @@ async function login(formData: FormData) {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; callbackUrl?: string; reset?: string }>;
+  searchParams: Promise<{ error?: string; callbackUrl?: string; reset?: string; sesion?: string }>;
 }) {
   const params = await searchParams;
   return (
@@ -36,6 +36,9 @@ export default async function LoginPage({
         <h1>Plataforma Flotas</h1>
         <p className="muted">Gestión integral del parque automotor institucional</p>
         {params.error && <p className="alert-error">Credenciales inválidas o usuario inactivo.</p>}
+        {params.sesion === "vencida" && (
+          <p className="alert-error">Tu sesión ya no es válida. Ingresá de nuevo.</p>
+        )}
         {params.reset && <p className="alert-ok">Contraseña actualizada. Ingresá con la nueva.</p>}
         <form action={login} className="stack">
           <input type="hidden" name="callbackUrl" value={params.callbackUrl ?? "/"} />
