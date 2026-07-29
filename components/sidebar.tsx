@@ -37,6 +37,7 @@ const ADMIN_NAV: NavSection[] = [
     links: [
       { href: "/alertas", label: "Alertas" },
       { href: "/geocercas", label: "Geocercas" },
+      { href: "/historico", label: "Histórico" },
     ],
   },
   {

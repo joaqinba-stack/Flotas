@@ -11,6 +11,17 @@ export function fmtDateTime(d: Date | string | null | undefined): string {
   }).format(new Date(d));
 }
 
+// Con segundos: en el rastreo dos posiciones consecutivas suelen caer dentro
+// del mismo minuto, y sin segundos se leen como si fueran la misma.
+export function fmtDateTimeSeconds(d: Date | string | null | undefined): string {
+  if (!d) return "—";
+  return new Intl.DateTimeFormat(LOCALE, {
+    dateStyle: "short",
+    timeStyle: "medium",
+    timeZone: TIME_ZONE,
+  }).format(new Date(d));
+}
+
 export function fmtDate(d: Date | string | null | undefined): string {
   if (!d) return "—";
   return new Intl.DateTimeFormat(LOCALE, { dateStyle: "short", timeZone: TIME_ZONE }).format(

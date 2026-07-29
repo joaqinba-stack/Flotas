@@ -24,6 +24,7 @@ const ROUTE_ROLES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/ordenes", roles: ["ADMIN", "SUPERVISOR"] },
   { prefix: "/alertas", roles: ["ADMIN", "SUPERVISOR", "DESK_AGENT"] },
   { prefix: "/geocercas", roles: ["ADMIN", "SUPERVISOR"] },
+  { prefix: "/historico", roles: ["ADMIN", "SUPERVISOR"] },
   { prefix: "/reportes", roles: ["ADMIN", "SUPERVISOR"] },
   { prefix: "/mapa", roles: ["ADMIN", "SUPERVISOR", "DESK_AGENT"] },
   { prefix: "/conductor", roles: ["DRIVER"] },

@@ -38,13 +38,19 @@ export default async function HistorialPage({
       </form>
 
       <HistoryMap
-        points={positions.map((p) => ({
-          latitude: p.latitude,
-          longitude: p.longitude,
-          recordedAt: p.recordedAt.toISOString(),
-          speedKmh: p.speedKmh,
-          isBuffered: p.isBuffered,
-        }))}
+        tracks={[
+          {
+            id: vehicle.id,
+            label: vehicle.plate,
+            points: positions.map((p) => ({
+              latitude: p.latitude,
+              longitude: p.longitude,
+              recordedAt: p.recordedAt.toISOString(),
+              speedKmh: p.speedKmh,
+              isBuffered: p.isBuffered,
+            })),
+          },
+        ]}
       />
 
       <h2>Registros ({positions.length})</h2>

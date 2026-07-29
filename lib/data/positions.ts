@@ -47,6 +47,34 @@ export async function listPositionsForReport(
   });
 }
 
+// Historial de la flota para Telemetría > Histórico. A diferencia del dataset
+// de reportes, esto se dibuja en un mapa en el request, así que lleva un tope
+// duro: sin él, un rango amplio sobre una flota con meses de GPS trae decenas
+// de miles de puntos y cuelga el navegador.
+export const FLEET_HISTORY_LIMIT = 1500;
+
+export async function listFleetPositions(
+  session: SessionUser,
+  filters: { vehicleId?: string; from?: Date; to?: Date; limit?: number },
+) {
+  const where: Prisma.PositionSnapshotWhereInput = {
+    vehicle: { AND: [vehicleScopeWhere(session)] },
+  };
+  if (filters.vehicleId) where.vehicleId = filters.vehicleId;
+  if (filters.from || filters.to) {
+    where.recordedAt = {
+      ...(filters.from ? { gte: filters.from } : {}),
+      ...(filters.to ? { lte: filters.to } : {}),
+    };
+  }
+  return prisma.positionSnapshot.findMany({
+    where,
+    orderBy: { recordedAt: "desc" },
+    take: filters.limit ?? FLEET_HISTORY_LIMIT,
+    include: { vehicle: { select: { id: true, plate: true } } },
+  });
+}
+
 // Última posición conocida de cada vehículo dentro del alcance del viewer.
 export async function latestPositions(session: SessionUser) {
   return prisma.positionSnapshot.findMany({
