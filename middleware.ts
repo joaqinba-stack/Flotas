@@ -71,5 +71,8 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Los archivos estáticos de public/ (logo institucional, íconos) también
+  // quedan fuera: si pasan por el guard, un usuario sin sesión recibe un 307 al
+  // login en vez de la imagen, y el logo se rompe en las pantallas públicas.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

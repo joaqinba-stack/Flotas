@@ -165,6 +165,9 @@
   padding: 24px 0;
 }
 .ds.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 0 20px 16px;
   border-bottom: 1px solid color-mix(in srgb, #fff 12%, transparent);
   margin-bottom: 8px;
@@ -173,6 +176,19 @@
   font-size: 22px;
   letter-spacing: 0.02em;
   color: #fff;
+  text-decoration: none;
+}
+.ds.sidebar .brand:hover { color: #fff; text-decoration: none; }
+.ds.sidebar .brand:hover .brand-logo { opacity: 0.85; }
+/* El logo institucional tiene fondo transparente y letra gris oscura, ilegible
+   sobre el panel oscuro: va sobre una placa blanca. */
+.ds.sidebar .brand-logo {
+  width: 40px;
+  height: auto;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 4px;
+  padding: 3px;
 }
 .ds.sidebar .brand small {
   display: block;

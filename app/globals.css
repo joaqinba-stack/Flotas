@@ -46,13 +46,18 @@ h3 { font-size: 15px; margin: 16px 0 8px; }
   z-index: 1100;
 }
 .sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: #fff;
   font-weight: 700;
   font-size: 16px;
   padding: 0 16px 14px;
   border-bottom: 1px solid #24384c;
   margin-bottom: 10px;
+  text-decoration: none;
 }
+.sidebar .brand-logo { width: 36px; height: auto; flex-shrink: 0; background: #fff; border-radius: 4px; padding: 3px; }
 .sidebar .brand small { display: block; font-weight: 400; font-size: 11px; color: #7e93a8; }
 .sidebar nav { display: flex; flex-direction: column; flex: 1; }
 .sidebar nav a {

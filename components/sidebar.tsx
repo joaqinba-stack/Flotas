@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { signOut } from "@/lib/auth";
-import type { SessionUser } from "@/lib/auth/session";
+import { homePathFor, type SessionUser } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
 import { SidebarNav, type NavSection } from "./sidebar-nav";
 
@@ -96,6 +97,11 @@ function navFor(role: Role): NavSection[] {
   }
 }
 
+// El mapa en vivo solo está habilitado para estos roles (mismo criterio que
+// ROUTE_ROLES en middleware.ts): para el resto la marca lleva a su propia home,
+// así el click no termina en un rebote del middleware.
+const MAP_ROLES: Role[] = [Role.ADMIN, Role.SUPERVISOR, Role.DESK_AGENT];
+
 const ROLE_LABEL: Record<Role, string> = {
   ADMIN: "Administrador",
   SUPERVISOR: "Supervisor",
@@ -109,12 +115,24 @@ export function Sidebar({ session }: { session: SessionUser }) {
     session.role === Role.ADMIN
       ? [...navFor(session.role), ADMIN_ONLY_SECTION]
       : navFor(session.role);
+  const brandHref = MAP_ROLES.includes(session.role) ? "/mapa" : homePathFor(session.role);
   return (
     <aside className="ds sidebar">
-      <div className="brand">
-        FLOTAS
-        <small>Parque automotor institucional</small>
-      </div>
+      <Link className="brand" href={brandHref}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- estático en
+            public/, no necesita la optimización ni el runtime de next/image */}
+        <img
+          className="brand-logo"
+          src="/Logo-conatel.png"
+          alt="CONATEL — Comisión Nacional de Telecomunicaciones"
+          width={40}
+          height={34}
+        />
+        <span className="brand-text">
+          FLOTAS
+          <small>Parque automotor institucional</small>
+        </span>
+      </Link>
       <SidebarNav sections={sections} />
       <div className="session-box">
         <strong>{session.name}</strong>
