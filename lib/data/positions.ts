@@ -47,11 +47,16 @@ export async function listPositionsForReport(
   });
 }
 
-// Historial de la flota para Telemetría > Histórico. A diferencia del dataset
-// de reportes, esto se dibuja en un mapa en el request, así que lleva un tope
-// duro: sin él, un rango amplio sobre una flota con meses de GPS trae decenas
-// de miles de puntos y cuelga el navegador.
-export const FLEET_HISTORY_LIMIT = 1500;
+// Historial de la flota para Telemetría > Histórico.
+//
+// Con un dispositivo elegido se trae el recorrido COMPLETO del rango: el tope
+// alto es una válvula contra un rango absurdo, no un recorte esperable. El mapa
+// dibuja una sola polilínea y resuelve el hover buscando el punto más cercano,
+// así que la cantidad de puntos no multiplica marcadores.
+export const HISTORY_LIMIT_DEVICE = 100_000;
+// "Todos" multiplica por la cantidad de equipos y mezcla recorridos: acá el tope
+// sí recorta seguido, y la pantalla lo avisa.
+export const HISTORY_LIMIT_FLEET = 5_000;
 
 export async function listFleetPositions(
   session: SessionUser,
@@ -70,7 +75,7 @@ export async function listFleetPositions(
   return prisma.positionSnapshot.findMany({
     where,
     orderBy: { recordedAt: "desc" },
-    take: filters.limit ?? FLEET_HISTORY_LIMIT,
+    take: filters.limit ?? (filters.vehicleId ? HISTORY_LIMIT_DEVICE : HISTORY_LIMIT_FLEET),
     include: { vehicle: { select: { id: true, plate: true } } },
   });
 }

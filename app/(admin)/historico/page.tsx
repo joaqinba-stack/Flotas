@@ -1,29 +1,40 @@
 import { requireSession } from "@/lib/auth/session";
 import { Role } from "@/lib/data/types";
 import { listVehicles } from "@/lib/data/vehicles";
-import { listFleetPositions, FLEET_HISTORY_LIMIT } from "@/lib/data/positions";
+import { listFleetPositions, HISTORY_LIMIT_DEVICE, HISTORY_LIMIT_FLEET } from "@/lib/data/positions";
 import { HistoryMap, type HistoryTrack } from "@/components/map/history-map";
-import { fmtDateTimeSeconds, fmtNumber } from "@/lib/format";
+import { dayInputValue, fmtNumber, inputToUtc } from "@/lib/format";
+import { exportHistoricoAction } from "./actions";
 
 const UN_DIA_MS = 24 * 3600 * 1000;
 
 export default async function HistoricoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vehicleId?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    vehicleId?: string;
+    from?: string;
+    to?: string;
+    fromTime?: string;
+    toTime?: string;
+    error?: string;
+  }>;
 }) {
   const session = await requireSession(Role.SUPERVISOR);
   const sp = await searchParams;
 
-  const desdeDefault = new Date(Date.now() - UN_DIA_MS);
-  const from = sp.from ? new Date(sp.from) : desdeDefault;
-  // El input date da solo el día: sin llevarlo al final de la jornada, filtrar
-  // "hasta hoy" dejaría fuera todo lo de hoy salvo la medianoche exacta.
-  const to = sp.to ? new Date(sp.to + "T23:59:59") : new Date();
+  const vehicleId = sp.vehicleId || undefined;
+  const fromDay = sp.from || dayInputValue(new Date(Date.now() - UN_DIA_MS));
+  const toDay = sp.to || dayInputValue();
+  const fromTime = sp.fromTime || "00:00";
+  const toTime = sp.toTime || "23:59";
+  // Las horas se interpretan en hora de Paraguay, no en la del servidor.
+  const from = inputToUtc(fromDay, fromTime);
+  const to = inputToUtc(toDay, toTime);
 
   const [vehicles, positions] = await Promise.all([
     listVehicles(session),
-    listFleetPositions(session, { vehicleId: sp.vehicleId || undefined, from, to }),
+    listFleetPositions(session, { vehicleId, from, to }),
   ]);
 
   // Un rastro por vehículo, conservando el orden (más reciente primero) que ya
@@ -44,7 +55,8 @@ export default async function HistoricoPage({
     });
   }
   const tracks = [...porVehiculo.values()];
-  const topeAlcanzado = positions.length >= FLEET_HISTORY_LIMIT;
+  const tope = vehicleId ? HISTORY_LIMIT_DEVICE : HISTORY_LIMIT_FLEET;
+  const topeAlcanzado = positions.length >= tope;
 
   return (
     <div>
@@ -52,10 +64,12 @@ export default async function HistoricoPage({
         <h1>Histórico de posiciones</h1>
       </div>
 
+      {sp.error && <p className="alert-error">{sp.error}</p>}
+
       <form className="filter-bar" method="get">
         <div className="field">
           <label htmlFor="vehicleId">Dispositivo</label>
-          <select id="vehicleId" name="vehicleId" defaultValue={sp.vehicleId ?? ""}>
+          <select id="vehicleId" name="vehicleId" defaultValue={vehicleId ?? ""}>
             <option value="">Todos</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
@@ -66,62 +80,55 @@ export default async function HistoricoPage({
         </div>
         <div className="field">
           <label htmlFor="from">Desde</label>
-          <input id="from" name="from" type="date" defaultValue={sp.from ?? from.toISOString().slice(0, 10)} />
+          <input id="from" name="from" type="date" defaultValue={fromDay} />
+        </div>
+        <div className="field">
+          <label htmlFor="fromTime">Hora</label>
+          <input id="fromTime" name="fromTime" type="time" defaultValue={fromTime} />
         </div>
         <div className="field">
           <label htmlFor="to">Hasta</label>
-          <input id="to" name="to" type="date" defaultValue={sp.to ?? to.toISOString().slice(0, 10)} />
+          <input id="to" name="to" type="date" defaultValue={toDay} />
+        </div>
+        <div className="field">
+          <label htmlFor="toTime">Hora</label>
+          <input id="toTime" name="toTime" type="time" defaultValue={toTime} />
         </div>
         <button className="btn" type="submit">Consultar</button>
       </form>
 
-      <p className="muted">
-        {positions.length === 0
-          ? "Sin posiciones en el rango seleccionado."
-          : `${fmtNumber(positions.length)} posiciones de ${tracks.length} dispositivo(s). Pasá el mouse por cualquier punto del rastro para ver hora y velocidad.`}
-      </p>
+      <div className="filter-bar">
+        <p className="muted" style={{ flex: 1, margin: 0 }}>
+          {positions.length === 0
+            ? "Sin posiciones en el rango seleccionado."
+            : `${fmtNumber(positions.length)} posiciones de ${tracks.length} dispositivo(s). Pasá el mouse por el recorrido para ver hora y velocidad.`}
+        </p>
+        {/* Repite los filtros aplicados: la descarga sale de lo que se está
+            viendo, no de lo que quedó a medio tipear en el formulario. */}
+        <form action={exportHistoricoAction}>
+          <input type="hidden" name="vehicleId" value={vehicleId ?? ""} />
+          <input type="hidden" name="from" value={fromDay} />
+          <input type="hidden" name="fromTime" value={fromTime} />
+          <input type="hidden" name="to" value={toDay} />
+          <input type="hidden" name="toTime" value={toTime} />
+          <button className="btn secondary" type="submit" disabled={positions.length === 0}>
+            Descargar lo filtrado (XLSX)
+          </button>
+        </form>
+      </div>
+
       {topeAlcanzado && (
         <p className="alert-error">
-          Se alcanzó el tope de {fmtNumber(FLEET_HISTORY_LIMIT)} posiciones: estás viendo las más
-          recientes del rango, no todas. Acotá las fechas o elegí un dispositivo. Para el historial
-          completo usá la descarga XLSX en Reportes.
+          El mapa llegó al tope de {fmtNumber(tope)} posiciones y está mostrando las más recientes
+          del rango.{" "}
+          {vehicleId
+            ? "Acotá las fechas u horas."
+            : "Elegí un dispositivo para ver su recorrido completo, o acotá el rango."}{" "}
+          La descarga XLSX no tiene este tope: sale con todo lo filtrado.
         </p>
       )}
 
       <HistoryMap tracks={tracks} />
-
-      {tracks.length > 0 && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <h2 style={{ marginTop: 0 }}>Resumen por dispositivo</h2>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Dispositivo</th>
-                <th>Posiciones</th>
-                <th>Primera</th>
-                <th>Última</th>
-                <th>Velocidad máxima</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tracks.map((t) => {
-                const primera = t.points[t.points.length - 1];
-                const ultima = t.points[0];
-                const velMax = Math.max(...t.points.map((p) => p.speedKmh));
-                return (
-                  <tr key={t.id}>
-                    <td><strong>{t.label}</strong></td>
-                    <td>{fmtNumber(t.points.length)}</td>
-                    <td>{fmtDateTimeSeconds(primera.recordedAt)}</td>
-                    <td>{fmtDateTimeSeconds(ultima.recordedAt)}</td>
-                    <td>{fmtNumber(velMax, 1)} km/h</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }

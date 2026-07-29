@@ -42,6 +42,51 @@ export function fmtMoney(n: number | string | null | undefined): string {
   return new Intl.NumberFormat(LOCALE, { style: "currency", currency: CURRENCY }).format(Number(n));
 }
 
+// Desfasaje de la zona de visualización para ese instante, en ms.
+function zoneOffsetMs(instant: Date): number {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(instant);
+  const val = (tipo: string) => Number(partes.find((p) => p.type === tipo)?.value ?? 0);
+  const comoSiFueraUtc = Date.UTC(
+    val("year"),
+    val("month") - 1,
+    val("day"),
+    val("hour") % 24, // algunos runtimes devuelven 24 en vez de 0
+    val("minute"),
+    val("second"),
+  );
+  return comoSiFueraUtc - instant.getTime();
+}
+
+// Convierte lo que el usuario escribe en los filtros (input date + input time)
+// al instante UTC que le corresponde, interpretándolo en hora de Paraguay.
+// Sin esto el servidor —que en el VPS corre en UTC— leería "08:00" como 08:00
+// UTC, o sea las 05:00 de Paraguay, y el rango quedaría corrido tres horas.
+export function inputToUtc(dateStr: string, timeStr: string): Date {
+  const comoUtc = new Date(`${dateStr}T${timeStr}:00Z`);
+  if (Number.isNaN(comoUtc.getTime())) return comoUtc;
+  return new Date(comoUtc.getTime() - zoneOffsetMs(comoUtc));
+}
+
+// El día de hoy según la zona de visualización, no la del servidor: en el VPS
+// (UTC), pasadas las 21:00 de Paraguay toISOString ya devuelve el día siguiente.
+export function dayInputValue(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
 export function dateInputValue(d: Date | string | null | undefined): string {
   if (!d) return "";
   return new Date(d).toISOString().slice(0, 10);

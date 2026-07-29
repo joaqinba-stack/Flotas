@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap, CircleMarker } from "leaflet";
+import { fmtDateTimeSeconds } from "@/lib/format";
 
 type VehiclePosition = {
   vehicleId: string;
@@ -68,7 +69,7 @@ export function LiveMap() {
           const online = p.vehicle.traccarDevice?.connectionStatus === "ONLINE";
           const popup = `<strong>${p.vehicle.plate}</strong><br/>` +
             `${p.vehicle.currentDriver ? `${p.vehicle.currentDriver.lastName}, ${p.vehicle.currentDriver.firstName}<br/>` : ""}` +
-            `${p.speedKmh} km/h — ${new Date(p.recordedAt).toLocaleString("es-AR")}` +
+            `${p.speedKmh} km/h — ${fmtDateTimeSeconds(p.recordedAt)}` +
             `${p.isBuffered ? "<br/><em>Dato reconciliado offline</em>" : ""}`;
           const existing = vehicleMarkers.get(p.vehicleId);
           if (existing) {
@@ -97,7 +98,7 @@ export function LiveMap() {
           const online = p.driver.device?.connectionStatus === "ONLINE";
           const color = online ? "#2d7d46" : "#c01c28";
           const popup = `<strong>${p.driver.lastName}, ${p.driver.firstName}</strong><br/>` +
-            `${p.speedKmh} km/h — ${new Date(p.recordedAt).toLocaleString("es-AR")}` +
+            `${p.speedKmh} km/h — ${fmtDateTimeSeconds(p.recordedAt)}` +
             `${p.isBuffered ? "<br/><em>Dato reconciliado offline</em>" : ""}`;
           const existing = driverMarkers.get(p.driverId);
           if (existing) {

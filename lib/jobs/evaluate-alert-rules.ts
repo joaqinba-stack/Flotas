@@ -12,6 +12,7 @@ import {
   DEFAULT_SPEED_LIMIT_KMH,
 } from "@/lib/validation/alert-rules";
 import { raiseAlert } from "@/lib/jobs/raise-alert";
+import { fmtDateTime } from "@/lib/format";
 
 function speedLimitKmh(): number {
   const raw = Number(process.env.SPEED_LIMIT_KMH);
@@ -30,7 +31,10 @@ export async function evaluateAlertRules() {
         type: AlertType.DEVICE_DISCONNECTED,
         severity: AlertSeverity.WARNING,
         vehicleId: device.vehicleId,
-        message: `Dispositivo ${device.name} sin señal desde ${device.lastSeenAt?.toISOString() ?? "nunca"}`,
+        // El texto de la alerta se guarda tal cual y se lee en pantalla: con
+        // toISOString quedaba un timestamp UTC crudo, tres horas corrido
+        // respecto de todas las demás fechas de la aplicación.
+        message: `Dispositivo ${device.name} sin señal desde ${device.lastSeenAt ? fmtDateTime(device.lastSeenAt) : "nunca"}`,
         occurredAt: now,
       });
     }
