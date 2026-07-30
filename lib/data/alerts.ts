@@ -134,26 +134,49 @@ export async function systemCreateAlert(input: {
   });
 }
 
-// Evita duplicar la misma alerta si ya existe una NEW/ACKNOWLEDGED equivalente
-// reciente (misma unidad+tipo[+geocerca]) dentro de la ventana indicada.
-export async function systemHasRecentOpenAlert(
+// Busca una alerta abierta (NEW/ACKNOWLEDGED) equivalente: misma unidad, mismo
+// tipo y misma geocerca. `windowMinutes` acota a las emitidas dentro de esa
+// ventana; con `null` mira toda la historia, que es lo que corresponde para las
+// condiciones que persisten (ver isPersistentAlertType).
+export async function systemFindOpenAlert(
   vehicleId: string,
   type: AlertType,
-  windowMinutes: number,
+  windowMinutes: number | null,
   geofenceId?: string,
 ) {
-  const since = new Date(Date.now() - windowMinutes * 60_000);
-  const existing = await prisma.alert.findFirst({
+  return prisma.alert.findFirst({
     where: {
       vehicleId,
       type,
       geofenceId: geofenceId ?? null,
       status: { in: [AlertStatus.NEW, AlertStatus.ACKNOWLEDGED] },
-      occurredAt: { gte: since },
+      ...(windowMinutes === null
+        ? {}
+        : { occurredAt: { gte: new Date(Date.now() - windowMinutes * 60_000) } }),
     },
-    select: { id: true },
+    // La más reciente: si quedaron varias abiertas del mismo episodio (todo lo
+    // creado antes de este arreglo), se cierra la última y las viejas siguen
+    // ahí hasta que se consoliden aparte.
+    orderBy: { occurredAt: "desc" },
+    select: { id: true, occurredAt: true, message: true, details: true },
   });
-  return existing !== null;
+}
+
+// Cierre automático hecho por el motor de reglas. No hay usuario detrás, así
+// que acknowledgedBy queda en null y la constancia del cierre va en el mensaje
+// y en `details`.
+export async function systemResolveAlert(
+  id: string,
+  input: { message: string; details: Record<string, unknown> },
+) {
+  return prisma.alert.update({
+    where: { id },
+    data: {
+      status: AlertStatus.RESOLVED,
+      message: input.message,
+      details: input.details as Prisma.InputJsonValue,
+    },
+  });
 }
 
 // ADMIN siempre recibe; un SUPERVISOR solo si su unidad es ancestro (o la

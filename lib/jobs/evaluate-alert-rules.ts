@@ -12,6 +12,7 @@ import {
   DEFAULT_SPEED_LIMIT_KMH,
 } from "@/lib/validation/alert-rules";
 import { raiseAlert } from "@/lib/jobs/raise-alert";
+import { resolveDisconnectionAlert } from "@/lib/jobs/resolve-disconnection";
 import { fmtDateTime } from "@/lib/format";
 
 function speedLimitKmh(): number {
@@ -35,8 +36,18 @@ export async function evaluateAlertRules() {
         // toISOString quedaba un timestamp UTC crudo, tres horas corrido
         // respecto de todas las demás fechas de la aplicación.
         message: `Dispositivo ${device.name} sin señal desde ${device.lastSeenAt ? fmtDateTime(device.lastSeenAt) : "nunca"}`,
+        // Guarda el inicio real del corte: occurredAt es recién cuando el motor
+        // lo detecta, hasta tres intervalos de monitoreo más tarde. Con esto la
+        // duración que se escribe al cerrar el episodio es la del corte.
+        details: { lastSeenAt: device.lastSeenAt?.toISOString() ?? null },
         occurredAt: now,
       });
+    } else {
+      // Hay señal fresca: el episodio terminó. Se cierra acá y no en el webhook
+      // porque el evento deviceOnline de Traccar puede no llegar nunca —el
+      // worker actualiza lastSeenAt por websocket—, y una alerta que no se
+      // cierra bloquearía la próxima desconexión de esa unidad.
+      await resolveDisconnectionAlert(device.vehicleId, device.lastSeenAt ?? now);
     }
 
     const [latest, previous] = await systemLatestTwoPositions(device.vehicleId);

@@ -2,6 +2,7 @@ import { AlertSeverity, AlertType, DeviceConnectionStatus } from "@/lib/data/typ
 import { systemFindByTraccarId, systemSetConnectionStatus } from "@/lib/data/traccar-devices";
 import { systemFindDriverByTraccarId, systemSetDriverConnectionStatus } from "@/lib/data/driver-devices";
 import { raiseAlert } from "@/lib/jobs/raise-alert";
+import { resolveDisconnectionAlert } from "@/lib/jobs/resolve-disconnection";
 
 type TraccarWebhookEvent = {
   type: string;
@@ -53,11 +54,17 @@ export async function POST(req: Request) {
         severity: AlertSeverity.WARNING,
         vehicleId: device.vehicleId,
         message: `Traccar reportó desconexión del dispositivo ${device.name}`,
+        // Mismo criterio que el motor de reglas: el corte empieza en la última
+        // señal, no cuando Traccar avisa (ver lib/jobs/resolve-disconnection).
+        details: { lastSeenAt: device.lastSeenAt?.toISOString() ?? null },
         occurredAt,
       });
       break;
     case "deviceOnline":
       await systemSetConnectionStatus(event.deviceId, DeviceConnectionStatus.ONLINE, occurredAt);
+      // Cierra el episodio de desconexión sin esperar a la próxima corrida del
+      // motor de reglas: el webhook es la señal más temprana de que volvió.
+      await resolveDisconnectionAlert(device.vehicleId, occurredAt);
       break;
     case "geofenceEnter":
     case "geofenceExit":
