@@ -248,3 +248,32 @@ form.stack { display: flex; flex-direction: column; gap: 12px; max-width: 560px;
 
 .filter-bar { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 14px; flex-wrap: wrap; }
 .filter-bar .field { min-width: 140px; }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.pagination-links { display: flex; gap: 4px; align-items: center; }
+.pagination-links a,
+.pagination-links span {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1;
+}
+.pagination-links a:hover { background: #eef4fb; text-decoration: none; }
+.pagination-links .current {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+/* Los extremos deshabilitados quedan visibles pero apagados: sacarlos haría
+   saltar el resto de los números al llegar a la primera o la última página. */
+.pagination-links span[aria-disabled="true"] { color: var(--text-muted); opacity: 0.55; }

@@ -13,25 +13,63 @@ function alertScopeWhere(session: SessionUser): Prisma.AlertWhereInput {
   return { vehicle: buildOrgScopeWhere(session) as Prisma.VehicleWhereInput };
 }
 
-export async function listAlerts(
-  session: SessionUser,
-  filters?: { status?: AlertStatus; type?: AlertType; severity?: AlertSeverity; vehicleId?: string },
-) {
+type AlertFilters = {
+  status?: AlertStatus;
+  type?: AlertType;
+  severity?: AlertSeverity;
+  vehicleId?: string;
+};
+
+function alertWhere(session: SessionUser, filters?: AlertFilters): Prisma.AlertWhereInput {
   const where: Prisma.AlertWhereInput = { AND: [alertScopeWhere(session)] };
   if (filters?.status) where.status = filters.status;
   if (filters?.type) where.type = filters.type;
   if (filters?.severity) where.severity = filters.severity;
   if (filters?.vehicleId) where.vehicleId = filters.vehicleId;
+  return where;
+}
+
+const ALERT_INCLUDE = {
+  vehicle: { select: { id: true, plate: true } },
+  geofence: { select: { id: true, name: true } },
+  acknowledgedBy: { select: { name: true } },
+} satisfies Prisma.AlertInclude;
+
+export async function listAlerts(session: SessionUser, filters?: AlertFilters) {
   return prisma.alert.findMany({
-    where,
+    where: alertWhere(session, filters),
     orderBy: { occurredAt: "desc" },
     take: 300,
-    include: {
-      vehicle: { select: { id: true, plate: true } },
-      geofence: { select: { id: true, name: true } },
-      acknowledgedBy: { select: { name: true } },
-    },
+    include: ALERT_INCLUDE,
   });
+}
+
+export const ALERTS_PAGE_SIZE = 20;
+
+// Versión paginada para la pantalla de Alertas. La lista sin paginar sigue
+// existiendo porque el motor de reportes y la API la consumen entera; acá el
+// problema es de lectura: con más de mil alertas abiertas, una sola tabla no se
+// puede recorrer.
+export async function listAlertsPage(
+  session: SessionUser,
+  filters: AlertFilters,
+  page: number,
+  perPage: number = ALERTS_PAGE_SIZE,
+) {
+  const where = alertWhere(session, filters);
+  const total = await prisma.alert.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / perPage));
+  // Si un filtro reduce el total, la página guardada en la URL puede quedar
+  // fuera de rango: se acota en vez de devolver una tabla vacía.
+  const current = Math.min(Math.max(1, page), pageCount);
+  const rows = await prisma.alert.findMany({
+    where,
+    orderBy: { occurredAt: "desc" },
+    skip: (current - 1) * perPage,
+    take: perPage,
+    include: ALERT_INCLUDE,
+  });
+  return { rows, total, page: current, pageCount, perPage };
 }
 
 export async function getAlert(session: SessionUser, id: string) {

@@ -3,7 +3,8 @@ import { Role } from "@/lib/data/types";
 import { listVehicles } from "@/lib/data/vehicles";
 import { listFleetPositions, HISTORY_LIMIT_DEVICE, HISTORY_LIMIT_FLEET } from "@/lib/data/positions";
 import { HistoryMap, type HistoryTrack } from "@/components/map/history-map";
-import { dayInputValue, fmtNumber, inputToUtc } from "@/lib/format";
+import { dayInputValue, fmtDateTime, fmtNumber, inputToUtc } from "@/lib/format";
+import { summarizeTrack, fmtDuration, type TrackSummary } from "@/lib/telemetry/distance";
 import { exportHistoricoAction } from "./actions";
 
 const UN_DIA_MS = 24 * 3600 * 1000;
@@ -57,6 +58,14 @@ export default async function HistoricoPage({
   const tracks = [...porVehiculo.values()];
   const tope = vehicleId ? HISTORY_LIMIT_DEVICE : HISTORY_LIMIT_FLEET;
   const topeAlcanzado = positions.length >= tope;
+
+  // Kilometraje por dispositivo. Se calcula acá, sobre los mismos puntos que
+  // dibuja el mapa, para que el cuadro y el recorrido no puedan contradecirse.
+  const resumenes: Array<{ track: HistoryTrack; resumen: TrackSummary }> = tracks
+    .map((track) => ({ track, resumen: summarizeTrack(track.points) }))
+    .sort((a, b) => b.resumen.distanceKm - a.resumen.distanceKm);
+  const totalKm = resumenes.reduce((acc, r) => acc + r.resumen.distanceKm, 0);
+  const totalDescartado = resumenes.reduce((acc, r) => acc + r.resumen.discardedKm, 0);
 
   return (
     <div>
@@ -126,6 +135,69 @@ export default async function HistoricoPage({
             : "Elegí un dispositivo para ver su recorrido completo, o acotá el rango."}{" "}
           La descarga XLSX no tiene este tope: sale con todo lo filtrado.
         </p>
+      )}
+
+      {resumenes.length > 0 && (
+        <div className="card">
+          <div className="page-header">
+            <h2 style={{ margin: 0, fontSize: 16 }}>Kilómetros recorridos</h2>
+            <span className="muted">
+              {fmtNumber(totalKm, 1)} km en total · {fmtNumber(totalDescartado, 1)} km descartados
+              por deriva del GPS
+            </span>
+          </div>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Dispositivo</th>
+                <th style={{ textAlign: "right" }}>Km recorridos</th>
+                <th style={{ textAlign: "right" }}>Descartado (ruido)</th>
+                <th style={{ textAlign: "right" }}>Vel. máx.</th>
+                <th style={{ textAlign: "right" }}>En marcha</th>
+                <th style={{ textAlign: "right" }}>Posiciones</th>
+                <th>Primera</th>
+                <th>Última</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resumenes.map(({ track, resumen }) => (
+                <tr key={track.id}>
+                  <td>{track.label}</td>
+                  <td style={{ textAlign: "right", fontWeight: 600 }}>
+                    {fmtNumber(resumen.distanceKm, 1)} km
+                  </td>
+                  <td style={{ textAlign: "right" }} className="muted">
+                    {fmtNumber(resumen.discardedKm, 1)} km
+                  </td>
+                  <td style={{ textAlign: "right" }}>{fmtNumber(resumen.maxSpeedKmh, 1)} km/h</td>
+                  <td style={{ textAlign: "right" }}>{fmtDuration(resumen.movingSeconds)}</td>
+                  <td style={{ textAlign: "right" }}>{fmtNumber(resumen.points)}</td>
+                  <td>{fmtDateTime(resumen.firstAt)}</td>
+                  <td>{fmtDateTime(resumen.lastAt)}</td>
+                </tr>
+              ))}
+              {resumenes.length > 1 && (
+                <tr>
+                  <td style={{ fontWeight: 600 }}>Total</td>
+                  <td style={{ textAlign: "right", fontWeight: 600 }}>
+                    {fmtNumber(totalKm, 1)} km
+                  </td>
+                  <td style={{ textAlign: "right" }} className="muted">
+                    {fmtNumber(totalDescartado, 1)} km
+                  </td>
+                  <td colSpan={5}></td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          {/* El cuadro sale de los puntos que se están mostrando: si el mapa
+              recortó por el tope, el kilometraje es el del tramo visible. */}
+          <p className="muted" style={{ marginBottom: 0 }}>
+            {topeAlcanzado
+              ? "Atención: el rango superó el tope de posiciones, así que el kilometraje es solo el del tramo visible."
+              : "No se cuentan los tramos con el equipo detenido, los menores a 10 m ni los saltos que implicarían más de 160 km/h: es deriva del receptor, no recorrido."}
+          </p>
+        </div>
       )}
 
       <HistoryMap tracks={tracks} />

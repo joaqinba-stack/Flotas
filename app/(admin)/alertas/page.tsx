@@ -1,22 +1,30 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth/session";
 import { Role, AlertStatus, AlertType, AlertSeverity } from "@/lib/data/types";
-import { listAlerts } from "@/lib/data/alerts";
+import { listAlertsPage, ALERTS_PAGE_SIZE } from "@/lib/data/alerts";
 import { StatusBadge } from "@/components/badges";
+import { Pagination } from "@/components/pagination";
 import { fmtDateTime } from "@/lib/format";
 
 export default async function AlertasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; type?: string; severity?: string }>;
+  searchParams: Promise<{ status?: string; type?: string; severity?: string; page?: string }>;
 }) {
   const session = await requireSession(Role.SUPERVISOR, Role.DESK_AGENT);
   const params = await searchParams;
-  const alerts = await listAlerts(session, {
+  const filtros = {
     status: params.status && params.status in AlertStatus ? (params.status as AlertStatus) : undefined,
     type: params.type && params.type in AlertType ? (params.type as AlertType) : undefined,
     severity: params.severity && params.severity in AlertSeverity ? (params.severity as AlertSeverity) : undefined,
-  });
+  };
+  const pedida = Number(params.page);
+  const { rows: alerts, total, page, pageCount, perPage } = await listAlertsPage(
+    session,
+    filtros,
+    Number.isFinite(pedida) && pedida > 0 ? pedida : 1,
+    ALERTS_PAGE_SIZE,
+  );
 
   return (
     <div>
@@ -73,6 +81,15 @@ export default async function AlertasPage({
           {alerts.length === 0 && <tr><td colSpan={6} className="muted">Sin alertas en su alcance.</td></tr>}
         </tbody>
       </table>
+
+      <Pagination
+        basePath="/alertas"
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        perPage={perPage}
+        params={{ status: params.status, type: params.type, severity: params.severity }}
+      />
     </div>
   );
 }
