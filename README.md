@@ -125,6 +125,19 @@ Ir a `http://IP_DEL_VPS:3000`.
 Jornada operativa → Combustible (mostrar validación de anomalías) → Incidencia → Orden a proveedor
 (entrar como proveedor y ver que solo ve la suya) → Alertas → generar Reporte PDF → Mesa 24/7.
 
+### Requisitos del equipo desde el que se accede
+
+Casi todo se renderiza en el servidor, así que el puesto de trabajo exige poco: cualquier PC,
+tablet o celular de 2015 en adelante con 2 GB de RAM. Lo único que corre pesado en el cliente es
+Leaflet. Lo que sí es obligatorio:
+
+- Navegador actual (Chrome, Edge, Firefox, Safari) con **EventSource / SSE**: el mapa en vivo se
+  alimenta por stream, no por polling. Internet Explorer queda afuera.
+- **Salida a Internet hacia `tile.openstreetmap.org`.** Los tiles no están self-hosted; en una red
+  que bloquee la salida el mapa aparece en blanco aunque el resto del sistema funcione.
+- Cookies habilitadas (la sesión de Auth.js es un JWT en cookie) y alcance al puerto `3000` del VPS.
+- Poder descargar archivos, para los reportes en PDF / XLSX / CSV.
+
 ---
 
 ## 4. Dispositivos en los móviles (unidades)
@@ -154,9 +167,50 @@ Usar la app gratuita **Traccar Client** (Android / iOS) en un teléfono dentro d
 Cualquier equipo soportado por Traccar, p. ej. **Teltonika** (protocolo `teltonika`, puerto `5023`,
 ya expuesto) o un equipo **H02** (puerto `5013`). Se instala uno por unidad, apuntando a
 `IP_DEL_VPS:<puerto del protocolo>`. La elección del modelo (y el plazo de instalación de 30 días
-del pliego) es una tarea de compra/logística, independiente del software. Al comprar, confirmar:
-soporte del protocolo en Traccar, reconfiguración remota del intervalo de reporte y buffer local
-para operar sin señal.
+del pliego) es una tarea de compra/logística, independiente del software.
+
+### Características mínimas del equipo GPS
+
+Lo que sigue es el pliego técnico de compra visto desde el software: cada fila existe porque hay
+código que la consume. Un equipo que cumple esta tabla cubre **todas** las funciones de telemetría
+implementadas; lo que no está acá, el sistema no lo lee.
+
+**Indispensable** — sin esto quedan requisitos del pliego sin cubrir:
+
+| Requisito | Por qué |
+|---|---|
+| Protocolo soportado por Traccar, con su puerto publicado | Hoy están abiertos `5023` (teltonika), `5013` (h02) y `5055` (OsmAnd). Otro protocolo exige agregar el puerto en [docker-compose.yml](docker-compose.yml) y en el firewall |
+| Identificador único fijo (IMEI) | Se carga en *Flota → (vehículo) → Dispositivo* (`TraccarDevice.uniqueId`). Es `@unique`: un equipo por unidad |
+| Trama con latitud, longitud, velocidad y **hora del fix generada por el equipo** | [lib/traccar/normalize.ts](lib/traccar/normalize.ts) toma `fixTime ?? deviceTime ?? serverTime`. Si el equipo no fecha el fix, todo dato reconciliado se registra con la hora en que llegó y el buffer offline deja de distinguirse |
+| Reporte periódico de 30 a 60 s, configurable | `monitoringIntervalSeconds` vale 60 por defecto y la alerta de desconexión salta a 3× ese valor. El worker evalúa reglas cada 30 s y hace polling cada 60 s; reportar más lento obliga a subir el umbral y las alertas llegan tarde |
+| **Buffer local con reenvío al recuperar señal** | Es la mitad del requisito "el registro no se interrumpe". El software lo detecta y lo marca: si la hora del fix quedó más de 120 s por detrás de la de recepción, la posición se guarda con `isBuffered = true` (`TRACCAR_BUFFERED_GAP_SECONDS`) |
+| **Batería interna de respaldo** | La otra mitad: corte eléctrico del vehículo sin corte de registro. Sin batería, quedarse sin corriente es indistinguible de que arranquen el equipo |
+| Módem celular con cobertura en Paraguay y APN configurable | Conviene 4G LTE (Cat-1 o Cat-M) y no depender de 2G, en retiro |
+
+**Recomendable** — el sistema funciona sin esto, pero degradado:
+
+| Característica | Qué habilita |
+|---|---|
+| Entrada de ignición cableada (ACC) | Llega como `attributes.ignition`. Sin ella, la alerta de *movimiento no autorizado* solo dispara con velocidad mayor a 5 km/h; con ella dispara con el motor encendido y la unidad detenida ([lib/validation/alert-rules.ts](lib/validation/alert-rules.ts)). Es también la columna "Encendida/Apagada" del historial |
+| GNSS multiconstelación (GPS + GLONASS/Galileo), precisión de 5 a 10 m | El kilometraje descarta tramos de menos de 10 m y saltos que impliquen más de 160 km/h ([lib/telemetry/distance.ts](lib/telemetry/distance.ts)). Un receptor con mucha deriva pierde recorrido real dentro de esos filtros: en el histórico del VPS la deriva ya representa entre 16 % y 18 % de la suma cruda |
+| Reconfiguración remota del intervalo de reporte (`positionPeriodic`) | Cambiar la cadencia sin ir hasta el vehículo. No está implementado en la UI del MVP: se hace desde la consola de Traccar o por SMS, según el modelo |
+| Rumbo (`course`) y alarma nativa de exceso de velocidad | El rumbo se guarda en cada posición. La alarma `overspeed` se traduce a alerta `SPEEDING` en el webhook, pero es redundante: el motor propio ya calcula el exceso contra `SPEED_LIMIT_KMH` |
+
+**No hace falta pagarlo:** sensor de combustible, lectura CAN/OBD, RFID de conductor, cámara,
+botón de pánico, micrófono. Ningún módulo los consume — los `attributes` de Traccar se guardan
+crudos en JSON pero no hay lectores. El combustible se carga a mano y se audita por reglas
+([lib/validation/fuel-load-rules.ts](lib/validation/fuel-load-rules.ts)).
+
+Mención aparte para el odómetro del equipo (`totalDistance`): se guarda en `odometerKm`, pero el
+kilometraje **no** se calcula con él. Traccar lo obtiene sumando la distancia entre fixes, así que
+arrastra la misma deriva que la suma cruda. No es criterio de compra.
+
+### Si se usa un celular en vez de un tracker
+
+Sirve para la demo y para rastrear al conductor (`DriverDevice`), no para cumplir el pliego: hace
+falta Android/iOS con GPS, plan de datos, permiso de ubicación *siempre* y el celular excluido del
+ahorro de batería para que el servicio no muera en segundo plano. Si el teléfono se apaga no hay
+buffer ni respaldo eléctrico, que es justo lo que el pliego pide garantizar.
 
 ---
 
