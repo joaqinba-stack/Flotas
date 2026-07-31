@@ -29,11 +29,29 @@ el árbol del proyecto tarda minutos y cualquier búsqueda recursiva se arrastra
 `flotas` es una función bash definida en `~/.flotas.sh` (WSL, cargada desde `.bashrc`).
 Subcomandos: `deploy [-y]`, `status`, `ps`, `logs [servicio]`, `ssh`, `cd`, `down`.
 
-`flotas deploy` hace push a GitHub, `git pull --ff-only` en el VPS y
-`docker compose up -d --build`. Aborta si la rama no es `main` o si hay cambios sin
-commitear, y pide confirmación salvo con `-y`. Usa el git de Windows a propósito: el
-de WSL tiene otro `autocrlf` y ve todos los archivos como modificados, y además no
+`flotas deploy` hace push a GitHub, **espera a que CI publique la imagen**, actualiza
+el repo del VPS y levanta esa imagen. Aborta si la rama no es `main` o si hay cambios
+sin commitear, y pide confirmación salvo con `-y`. Usa el git de Windows a propósito:
+el de WSL tiene otro `autocrlf` y ve todos los archivos como modificados, y además no
 tiene las credenciales de GitHub.
+
+**El VPS no compila.** La imagen la construye
+[.github/workflows/ci.yml](.github/workflows/ci.yml) y se publica en
+`ghcr.io/joaqinba-stack/flotas` con dos tags: `latest` y el sha del commit. El
+servidor solo hace `pull` + `up -d`. Antes compilaba ahí y con 2 GB de RAM eso
+significaba swap, 5 a 12 minutos por deploy y capas de caché que llegaron a ocupar
+28 GB. El job de imagen depende del de verificación, así que una imagen que no pasa
+lint, typecheck y tests nunca llega al registry.
+
+El deploy espera al tag **del commit exacto**, no a `latest`: `latest` puede ser
+todavía el build anterior y se desplegaría una versión vieja creyendo que es la
+nueva. El tag desplegado queda anotado en `/opt/flotas/.deployed-tag`, y por eso
+volver atrás es `flotas rollback <sha>`: la imagen ya existe, no hay nada que
+recompilar.
+
+El paquete de GHCR es público —hereda del repo, que también lo es—, así que el
+servidor baja la imagen sin credenciales. Si el repo pasara a privado, habría que
+hacer `docker login ghcr.io` en el VPS con un token de `read:packages`.
 
 ## Antes de desplegar
 
@@ -55,10 +73,8 @@ El usuario pide explícitamente que no se pierdan los datos del VPS. El protocol
 cascada sobre casi todas las tablas: borraría los datos reales. El `docker-compose`
 corre `db:seed`, que es un solo `upsert` del admin y es inocuo.
 
-El build corre en el VPS y la máquina tiene 1,9 GB de RAM con Traccar reservando 1 GB
-fijo de heap, así que compila apoyándose en swap: entre 5 y 12 minutos. No es un
-cuelgue. Docker mantiene la imagen anterior sirviendo hasta que la nueva está lista,
-así que la caída real son los segundos del reemplazo de contenedores.
+Docker mantiene la imagen anterior sirviendo hasta que la nueva está lista, así que
+la caída real son los segundos del reemplazo de contenedores.
 
 ## Después de desplegar, verificar
 
