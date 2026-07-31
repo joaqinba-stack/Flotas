@@ -4,7 +4,7 @@ import { listVehicles } from "@/lib/data/vehicles";
 import { listFleetPositions, HISTORY_LIMIT_DEVICE, HISTORY_LIMIT_FLEET } from "@/lib/data/positions";
 import { HistoryMap, type HistoryTrack } from "@/components/map/history-map";
 import { dayInputValue, fmtDateTime, fmtNumber, inputToUtc } from "@/lib/format";
-import { summarizeTrack, fmtDuration, type TrackSummary } from "@/lib/telemetry/distance";
+import { summarizeTrack, type TrackSummary } from "@/lib/telemetry/distance";
 import { exportHistoricoAction } from "./actions";
 
 const UN_DIA_MS = 24 * 3600 * 1000;
@@ -151,10 +151,7 @@ export default async function HistoricoPage({
               <tr>
                 <th>Dispositivo</th>
                 <th style={{ textAlign: "right" }}>Km recorridos</th>
-                <th style={{ textAlign: "right" }}>Descartado (ruido)</th>
                 <th style={{ textAlign: "right" }}>Vel. máx.</th>
-                <th style={{ textAlign: "right" }}>En marcha</th>
-                <th style={{ textAlign: "right" }}>Posiciones</th>
                 <th>Primera</th>
                 <th>Última</th>
               </tr>
@@ -166,12 +163,7 @@ export default async function HistoricoPage({
                   <td style={{ textAlign: "right", fontWeight: 600 }}>
                     {fmtNumber(resumen.distanceKm, 1)} km
                   </td>
-                  <td style={{ textAlign: "right" }} className="muted">
-                    {fmtNumber(resumen.discardedKm, 1)} km
-                  </td>
                   <td style={{ textAlign: "right" }}>{fmtNumber(resumen.maxSpeedKmh, 1)} km/h</td>
-                  <td style={{ textAlign: "right" }}>{fmtDuration(resumen.movingSeconds)}</td>
-                  <td style={{ textAlign: "right" }}>{fmtNumber(resumen.points)}</td>
                   <td>{fmtDateTime(resumen.firstAt)}</td>
                   <td>{fmtDateTime(resumen.lastAt)}</td>
                 </tr>
@@ -182,10 +174,7 @@ export default async function HistoricoPage({
                   <td style={{ textAlign: "right", fontWeight: 600 }}>
                     {fmtNumber(totalKm, 1)} km
                   </td>
-                  <td style={{ textAlign: "right" }} className="muted">
-                    {fmtNumber(totalDescartado, 1)} km
-                  </td>
-                  <td colSpan={5}></td>
+                  <td colSpan={3}></td>
                 </tr>
               )}
             </tbody>
