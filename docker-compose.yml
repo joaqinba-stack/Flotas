@@ -46,7 +46,14 @@ services:
       - traccar-data:/opt/traccar/data
 
   # Migraciones + seed. Corre una vez y termina (se re-ejecuta en cada `up`, es idempotente).
+  #
+  # migrate, app y worker comparten la MISMA imagen, que la construye CI y no el
+  # servidor (ver .github/workflows/ci.yml). FLOTAS_TAG fija el commit a
+  # desplegar: `FLOTAS_TAG=<sha> docker compose up -d` publica exactamente esa
+  # versión, y volver atrás es repetirlo con el sha anterior, sin recompilar.
+  # Se conserva `build` para poder construir en local cuando haga falta.
   migrate:
+    image: ghcr.io/joaqinba-stack/flotas:${FLOTAS_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -61,6 +68,7 @@ services:
 
   # Aplicación web Next.js.
   app:
+    image: ghcr.io/joaqinba-stack/flotas:${FLOTAS_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -83,6 +91,7 @@ services:
   # Worker de background: WebSocket de Traccar, poll de posiciones, motor de
   # alertas y cola de reportes. Misma imagen que la app, distinto comando.
   worker:
+    image: ghcr.io/joaqinba-stack/flotas:${FLOTAS_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

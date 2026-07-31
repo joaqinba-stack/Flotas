@@ -22,3 +22,37 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npx next build
+
+  # Construye la imagen acá y no en el VPS. El servidor tiene 2 GB de RAM y
+  # Traccar le reserva 1 GB fijo: compilar ahí forzaba swap, tardaba entre 5 y 12
+  # minutos y dejaba capas de caché que llegaron a ocupar 28 GB de disco.
+  # Depende de verify, así que una imagen rota nunca llega al registry.
+  image:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # El tag por commit es lo que permite desplegar exactamente lo que se
+          # probó y volver atrás sin recompilar: basta levantar el sha anterior.
+          tags: |
+            ghcr.io/joaqinba-stack/flotas:latest
+            ghcr.io/joaqinba-stack/flotas:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Sin manifiestos de atestación: agregan una capa extra al manifest
+          # list que docker compose pull no necesita.
+          provenance: false
